@@ -38,11 +38,11 @@ exports.createItem = asyncHandler(async (req, res) => {
 });
 
 exports.getAllItems = asyncHandler(async (req, res) => {
-  const items = await itemService.getAllItems();
+  const result = await itemService.getAllItems(req.query);
 
   res.json({
     success: true,
-    data: items,
+    data: result,
   });
 });
 
@@ -52,5 +52,49 @@ exports.getItemById = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: item,
+  });
+});
+
+exports.updateItem = asyncHandler(async (req, res) => {
+  const {
+    title,
+    description,
+    dailyRate,
+    deposit,
+    categoryId,
+  } = req.body;
+
+  if (
+    !title ||
+    !description ||
+    !dailyRate ||
+    !deposit ||
+    !categoryId
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const item = await itemService.updateItem(
+    req.params.id,
+    req.user.id,
+    req.body
+  );
+
+  res.json({
+    success: true,
+    message: "Item updated successfully",
+    data: item,
+  });
+});
+
+exports.deleteItem = asyncHandler(async (req, res) => {
+  await itemService.deleteItem(
+    req.params.id,
+    req.user.id
+  );
+
+  res.json({
+    success: true,
+    message: "Item deleted successfully",
   });
 });

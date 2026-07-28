@@ -58,39 +58,91 @@ const createItem = async ({
   return item;
 };
 
-const getAllItems = async () => {
-  return await prisma.item.findMany({
-    where: {
-      available: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      dailyRate: true,
-      deposit: true,
-      imageUrl: true,
-      available: true,
-      createdAt: true,
-      updatedAt: true,
-      owner: {
-        select: {
-          id: true,
-          name: true,
+const getAllItems = async (query) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    available: true,
+  };
+
+  // Search
+  if (query.search) {
+    where.title = {
+      contains: query.search,
+      mode: "insensitive",
+    };
+  }
+
+  // Category Filter
+  if (query.category) {
+    where.categoryId = query.category;
+  }
+
+  // Sorting
+  let orderBy = {
+    createdAt: "desc",
+  };
+
+  if (query.sort === "price_asc") {
+    orderBy = {
+      dailyRate: "asc",
+    };
+  }
+
+  if (query.sort === "price_desc") {
+    orderBy = {
+      dailyRate: "desc",
+    };
+  }
+
+  const [items, totalItems] = await Promise.all([
+    prisma.item.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        dailyRate: true,
+        deposit: true,
+        imageUrl: true,
+        available: true,
+        createdAt: true,
+        updatedAt: true,
+        owner: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            icon: true,
+          },
         },
       },
-      category: {
-        select: {
-          id: true,
-          name: true,
-          icon: true,
-        },
-      },
+    }),
+
+    prisma.item.count({
+      where,
+    }),
+  ]);
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
     },
-  });
+  };
 };
 
 const getItemById = async (id) => {
@@ -133,8 +185,99 @@ const getItemById = async (id) => {
   return item;
 };
 
+const updateItem = async (itemId, ownerId, data) => {
+  const item = await prisma.item.findUnique({
+    where: {
+      id: itemId,
+    },
+  });
+
+  if (!item) {
+    throw new ApiError(404, "Item not found");
+  }
+
+  if (item.ownerId !== ownerId) {
+    throw new ApiError(403, "You are not authorised to update this item");
+  }
+
+  const category = await prisma.category.findUnique({
+    where: {
+      id: data.categoryId,
+    },
+  });
+
+  if (!category) {
+    throw new ApiError(404, "Category not found");
+  }
+
+  const updatedItem = await prisma.item.update({
+    where: {
+      id: itemId,
+    },
+    data: {
+      title: data.title,
+      description: data.description,
+      dailyRate: Number(data.dailyRate),
+      deposit: Number(data.deposit),
+      categoryId: data.categoryId,
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      dailyRate: true,
+      deposit: true,
+      imageUrl: true,
+      available: true,
+      createdAt: true,
+      updatedAt: true,
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+        },
+      },
+    },
+  });
+
+  return updatedItem;
+};
+const deleteItem = async (itemId, ownerId) => {
+  const item = await prisma.item.findUnique({
+    where: {
+      id: itemId,
+    },
+  });
+
+  if (!item) {
+    throw new ApiError(404, "Item not found");
+  }
+
+  if (item.ownerId !== ownerId) {
+    throw new ApiError(403, "You are not authorised to delete this item");
+  }
+
+  await prisma.item.delete({
+    where: {
+      id: itemId,
+    },
+  });
+
+  return;
+};
+
 module.exports = {
   createItem,
   getAllItems,
   getItemById,
+  updateItem,
+  deleteItem,
 };
