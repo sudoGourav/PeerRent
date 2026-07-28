@@ -19,6 +19,11 @@ enum BookingStatus {
   COMPLETED
   CANCELLED
 }
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
 
 model User {
   id        String   @id @default(uuid())
@@ -75,27 +80,24 @@ model Item {
 }
 
 model Booking {
-  id          String   @id @default(uuid())
+  id             String   @id @default(uuid())
 
-  startDate   DateTime
-  endDate     DateTime
+  startDate      DateTime
+  endDate        DateTime
+  numberOfDays   Int
+  totalPrice     Float
 
-  numberOfDays Int
+  status         BookingStatus @default(PENDING)
+  paymentStatus  PaymentStatus @default(PENDING)
 
-  totalPrice  Float
+  renterId       String
+  renter         User @relation(fields: [renterId], references: [id])
 
-  status      BookingStatus @default(PENDING)
+  itemId         String
+  item           Item @relation(fields: [itemId], references: [id])
 
-  paymentStatus String @default("PENDING")
-
-  renterId    String
-  renter      User @relation(fields: [renterId], references: [id])
-
-  itemId      String
-  item        Item @relation(fields: [itemId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([itemId])
   @@index([renterId])
