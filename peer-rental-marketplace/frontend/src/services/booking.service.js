@@ -14,3 +14,10 @@ export const cancelBooking = async (bookingId) => {
   const response = await api.patch(`/bookings/${bookingId}/cancel`);
   return response.data;
 };
+export const getUnavailableDates = async (itemId) => {
+  const response = await api.get(
+    `/bookings/item/${itemId}/unavailable-dates`
+  );
+
+  return response.data;
+};

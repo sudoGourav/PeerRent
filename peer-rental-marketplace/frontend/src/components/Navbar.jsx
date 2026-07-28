@@ -31,11 +31,19 @@ export default function Navbar() {
           {token ? (
             <>
               <Link
-  to="/create-item"
-  className="hover:text-blue-600"
->
-  List Item
-</Link>
+                to="/create-item"
+                className="hover:text-blue-600"
+              >
+                List Item
+              </Link>
+
+              <Link
+                to="/wishlist"
+                className="hover:text-blue-600"
+              >
+                ❤️ Wishlist
+              </Link>
+
               <Link
                 to="/bookings"
                 className="hover:text-blue-600"
@@ -44,11 +52,11 @@ export default function Navbar() {
               </Link>
 
               <Link
-  to="/my-items"
-  className="hover:text-blue-600"
->
-  My Items
-</Link>
+                to="/my-items"
+                className="hover:text-blue-600"
+              >
+                My Items
+              </Link>
 
               <Link
                 to="/dashboard"

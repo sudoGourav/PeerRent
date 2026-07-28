@@ -104,10 +104,38 @@ exports.updateItem = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
+  let imageUrl = null;
+
+  if (req.file) {
+    imageUrl = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "peerrent/items",
+        },
+        (error, result) => {
+          if (error) return reject(error);
+
+          resolve(result.secure_url);
+        }
+      );
+
+      streamifier
+        .createReadStream(req.file.buffer)
+        .pipe(stream);
+    });
+  }
+
   const item = await itemService.updateItem(
     req.params.id,
     req.user.id,
-    req.body
+    {
+      title,
+      description,
+      dailyRate,
+      deposit,
+      categoryId,
+      imageUrl,
+    }
   );
 
   res.json({

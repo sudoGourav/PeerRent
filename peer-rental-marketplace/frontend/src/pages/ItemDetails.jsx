@@ -1,8 +1,23 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import {
+  getItemReviews,
+  createReview,
+} from "../services/review.service";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+import {
+  differenceInCalendarDays,
+  eachDayOfInterval,
+} from "date-fns";
+
+import {
+  createBooking,
+  getUnavailableDates,
+} from "../services/booking.service";
 
 import { getItemById } from "../services/item.service";
-import { createBooking } from "../services/booking.service";
 
 export default function ItemDetails() {
   const { id } = useParams();
@@ -10,10 +25,21 @@ export default function ItemDetails() {
   const [item, setItem] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [unavailableDates, setUnavailableDates] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
+
+const [rating, setRating] = useState(5);
+const [comment, setComment] = useState("");
+
+const [reviewLoading, setReviewLoading] = useState(false);
 
   useEffect(() => {
-    loadItem();
-  }, []);
+  loadItem();
+  loadReviews();
+  loadUnavailableDates();
+}, []);
 
   const loadItem = async () => {
     try {
@@ -23,7 +49,38 @@ export default function ItemDetails() {
       console.error(err);
     }
   };
+  const loadReviews = async () => {
+  try {
+    const res = await getItemReviews(id);
 
+    setReviews(res.data.reviews);
+    setAverageRating(res.data.averageRating);
+    setTotalReviews(res.data.totalReviews);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const loadUnavailableDates = async () => {
+  try {
+    const res = await getUnavailableDates(id);
+
+    const blocked = [];
+
+    res.data.forEach((booking) => {
+      blocked.push(
+        ...eachDayOfInterval({
+          start: new Date(booking.startDate),
+          end: new Date(booking.endDate),
+        })
+      );
+    });
+
+    setUnavailableDates(blocked);
+  } catch (err) {
+    console.error(err);
+  }
+};
   const handleBooking = async () => {
     if (!startDate || !endDate) {
       alert("Please select both dates");
@@ -32,16 +89,58 @@ export default function ItemDetails() {
 
     try {
       await createBooking({
-        itemId: item.id,
-        startDate,
-        endDate,
-      });
+  itemId: item.id,
+  startDate: startDate.toISOString().split("T")[0],
+  endDate: endDate.toISOString().split("T")[0],
+});
 
       alert("Booking Created Successfully");
     } catch (err) {
       alert(err.response?.data?.message || "Booking Failed");
     }
   };
+  const handleReviewSubmit = async () => {
+  if (!comment.trim()) {
+    alert("Please enter a review.");
+    return;
+  }
+
+  try {
+    setReviewLoading(true);
+
+    await createReview({
+      itemId: item.id,
+      rating,
+      comment,
+    });
+
+    alert("Review added successfully!");
+
+    setRating(5);
+    setComment("");
+
+    loadReviews();
+  } catch (err) {
+    alert(
+      err.response?.data?.message ||
+      "Failed to add review."
+    );
+  } finally {
+    setReviewLoading(false);
+  }
+};
+const rentalDays =
+  startDate && endDate
+    ? differenceInCalendarDays(endDate, startDate)
+    : 0;
+
+const rentalCost =
+  rentalDays > 0
+    ? rentalDays * Number(item?.dailyRate || 0)
+    : 0;
+
+const totalCost =
+  rentalCost + Number(item?.deposit || 0);
 
   if (!item) {
     return (
@@ -144,14 +243,15 @@ export default function ItemDetails() {
                   Start Date
                 </label>
 
-                <input
-                  type="date"
-                  className="w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
-                  value={startDate}
-                  onChange={(e) =>
-                    setStartDate(e.target.value)
-                  }
-                />
+                <DatePicker
+  selected={startDate}
+  onChange={(date) => setStartDate(date)}
+  minDate={new Date()}
+  excludeDates={unavailableDates}
+  dateFormat="dd/MM/yyyy"
+  placeholderText="Select start date"
+  className="w-full rounded-lg border border-gray-300 p-3"
+/>
               </div>
 
               <div>
@@ -159,19 +259,55 @@ export default function ItemDetails() {
                   End Date
                 </label>
 
-                <input
-                  type="date"
-                  className="w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
-                  value={endDate}
-                  onChange={(e) =>
-                    setEndDate(e.target.value)
-                  }
-                />
+                <DatePicker
+  selected={endDate}
+  onChange={(date) => setEndDate(date)}
+  minDate={startDate || new Date()}
+  excludeDates={unavailableDates}
+  dateFormat="dd/MM/yyyy"
+  placeholderText="Select end date"
+  className="w-full rounded-lg border border-gray-300 p-3"
+/>
               </div>
+                  {/* Booking Summary */}
+<div className="rounded-xl bg-gray-50 p-4">
+  <h3 className="mb-3 text-lg font-semibold">
+    Booking Summary
+  </h3>
 
+  <div className="space-y-2 text-sm">
+    <div className="flex justify-between">
+      <span>Daily Rate</span>
+      <span>₹{item.dailyRate}/day</span>
+    </div>
+
+    <div className="flex justify-between">
+      <span>Rental Days</span>
+      <span>{rentalDays}</span>
+    </div>
+
+    <div className="flex justify-between">
+      <span>Rental Cost</span>
+      <span>₹{rentalCost}</span>
+    </div>
+
+    <div className="flex justify-between">
+      <span>Security Deposit</span>
+      <span>₹{item.deposit}</span>
+    </div>
+
+    <hr />
+
+    <div className="flex justify-between text-lg font-bold">
+      <span>Total</span>
+      <span>₹{totalCost}</span>
+    </div>
+  </div>
+</div>
               <button
+              disabled={!startDate || !endDate}
                 onClick={handleBooking}
-                className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition hover:bg-blue-700"
+                className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
               >
                 Book Now
               </button>
@@ -179,6 +315,85 @@ export default function ItemDetails() {
           </div>
         </div>
       </div>
+      {/* Reviews Section */}
+<div className="mt-10 rounded-2xl border bg-white p-6 shadow">
+  <h2 className="text-2xl font-semibold">
+    Reviews
+  </h2>
+
+  <p className="mt-2 text-gray-600">
+    ⭐ {averageRating.toFixed(1)} ({totalReviews} reviews)
+  </p>
+
+  {/* Add Review */}
+  <div className="mt-6 border-t pt-6">
+    <h3 className="mb-4 text-lg font-semibold">
+      Write a Review
+    </h3>
+
+    <div className="space-y-4">
+      <select
+        value={rating}
+        onChange={(e) => setRating(Number(e.target.value))}
+        className="w-full rounded-lg border p-3"
+      >
+        <option value={5}>★★★★★ (5)</option>
+        <option value={4}>★★★★☆ (4)</option>
+        <option value={3}>★★★☆☆ (3)</option>
+        <option value={2}>★★☆☆☆ (2)</option>
+        <option value={1}>★☆☆☆☆ (1)</option>
+      </select>
+
+      <textarea
+        rows={4}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        className="w-full rounded-lg border p-3"
+        placeholder="Write your review..."
+      />
+
+      <button
+        onClick={handleReviewSubmit}
+        disabled={reviewLoading}
+        className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-gray-400"
+      >
+        {reviewLoading
+          ? "Submitting..."
+          : "Submit Review"}
+      </button>
+    </div>
+  </div>
+
+  {/* Review List */}
+  <div className="mt-8 space-y-6">
+    {reviews.length === 0 ? (
+      <p className="text-gray-500">
+        No reviews yet.
+      </p>
+    ) : (
+      reviews.map((review) => (
+        <div
+          key={review.id}
+          className="rounded-lg border p-4"
+        >
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold">
+              {review.user.name}
+            </h4>
+
+            <span>
+              {"⭐".repeat(review.rating)}
+            </span>
+          </div>
+
+          <p className="mt-3 text-gray-600">
+            {review.comment}
+          </p>
+        </div>
+      ))
+    )}
+  </div>
+</div>
     </div>
   );
 }

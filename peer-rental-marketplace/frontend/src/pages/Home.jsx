@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { getItems } from "../services/item.service";
 import { getCategories } from "../services/category.service";
+
 import ItemCard from "../components/ItemCard";
 
 export default function Home() {
@@ -44,8 +45,7 @@ export default function Home() {
         </h1>
 
         <p className="mt-4 text-lg">
-          Peer-to-peer rental marketplace for
-          cameras, laptops, bikes and more.
+          Peer-to-peer rental marketplace for cameras, laptops, bikes and more.
         </p>
 
         <input

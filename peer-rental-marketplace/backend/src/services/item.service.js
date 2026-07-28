@@ -229,7 +229,10 @@ const updateItem = async (itemId, ownerId, data) => {
   }
 
   if (item.ownerId !== ownerId) {
-    throw new ApiError(403, "You are not authorised to update this item");
+    throw new ApiError(
+      403,
+      "You are not authorised to update this item"
+    );
   }
 
   const category = await prisma.category.findUnique({
@@ -252,7 +255,11 @@ const updateItem = async (itemId, ownerId, data) => {
       dailyRate: Number(data.dailyRate),
       deposit: Number(data.deposit),
       categoryId: data.categoryId,
+
+      // Keep the old image if no new one was uploaded
+      imageUrl: data.imageUrl || item.imageUrl,
     },
+
     select: {
       id: true,
       title: true,

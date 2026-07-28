@@ -12,9 +12,15 @@ router.get("/my", bookingController.getMyBookings);
 
 router.get("/owner", bookingController.getOwnerBookings);
 
+router.get(
+  "/item/:itemId/unavailable-dates",
+  bookingController.getUnavailableDates
+);
+
 router.get("/:id", bookingController.getBookingById);
 
 router.patch("/:id/status", bookingController.updateBookingStatus);
+
 
 router.patch("/:id/cancel", bookingController.cancelBooking);
 

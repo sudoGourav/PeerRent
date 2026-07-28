@@ -333,6 +333,23 @@ const cancelBooking = async (
     },
   });
 };
+const getUnavailableDates = async (itemId) => {
+  return await prisma.booking.findMany({
+    where: {
+      itemId,
+      status: {
+        in: ["PENDING", "CONFIRMED", "ACTIVE"],
+      },
+    },
+    select: {
+      startDate: true,
+      endDate: true,
+    },
+    orderBy: {
+      startDate: "asc",
+    },
+  });
+};
 
 
 
@@ -343,4 +360,5 @@ module.exports = {
   getBookingById,
   updateBookingStatus,
   cancelBooking,
+  getUnavailableDates
 };

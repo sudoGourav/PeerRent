@@ -85,3 +85,14 @@ exports.cancelBooking = asyncHandler(async (req, res) => {
     data: booking,
   });
 });
+
+exports.getUnavailableDates = asyncHandler(async (req, res) => {
+  const bookings = await bookingService.getUnavailableDates(
+    req.params.itemId
+  );
+
+  res.json({
+    success: true,
+    data: bookings,
+  });
+});

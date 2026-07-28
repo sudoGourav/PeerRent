@@ -8,6 +8,8 @@ import ItemDetails from "./pages/ItemDetails";
 import MyBookings from "./pages/MyBookings";
 import CreateItem from "./pages/CreateItem";
 import MyItems from "./pages/MyItems";
+import EditItem from "./pages/EditItem";
+import Wishlist from "./pages/Wishlist";
 
 import MainLayout from "./layouts/MainLayout";
 import PrivateRoute from "./components/PrivateRoute";
@@ -61,6 +63,16 @@ function App() {
           </MainLayout>
         }
       />
+      <Route
+  path="/edit-item/:id"
+  element={
+    <PrivateRoute>
+      <MainLayout>
+        <EditItem />
+      </MainLayout>
+    </PrivateRoute>
+  }
+/>
 
       {/* Protected Routes */}
       <Route
@@ -84,6 +96,16 @@ function App() {
           </PrivateRoute>
         }
       />
+      <Route
+  path="/wishlist"
+  element={
+    <PrivateRoute>
+      <MainLayout>
+        <Wishlist />
+      </MainLayout>
+    </PrivateRoute>
+  }
+/>
       <Route
   path="/my-items"
   element={

@@ -16,7 +16,12 @@ router.post(
   itemController.createItem
 );
 
-router.put("/:id", authMiddleware, itemController.updateItem);
+router.put(
+  "/:id",
+  authMiddleware,
+  upload.single("image"),
+  itemController.updateItem
+);
 
 router.delete("/:id", authMiddleware, itemController.deleteItem);
 

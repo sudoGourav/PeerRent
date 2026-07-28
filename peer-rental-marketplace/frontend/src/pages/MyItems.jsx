@@ -1,15 +1,42 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { getMyItems } from "../services/item.service";
+import {
+  getMyItems,
+  deleteItem,
+} from "../services/item.service";
 
 export default function MyItems() {
   const [items, setItems] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadItems();
   }, []);
+  const handleDelete = async (id) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this item?"
+  );
 
+  if (!confirmed) return;
+
+  try {
+    await deleteItem(id);
+
+    setItems((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
+
+    alert("Item deleted successfully.");
+  } catch (err) {
+    console.error(err);
+    alert(
+      err.response?.data?.message ||
+      "Failed to delete item."
+    );
+  }
+};
   const loadItems = async () => {
     try {
       const res = await getMyItems();
@@ -99,13 +126,15 @@ export default function MyItems() {
                 </Link>
 
                 <button
-                  className="flex-1 rounded bg-yellow-500 py-2 text-white"
+                  onClick={() => navigate(`/edit-item/${item.id}`)}
+  className="flex-1 rounded bg-yellow-500 py-2 text-white hover:bg-yellow-600"
                 >
                   Edit
                 </button>
 
                 <button
-                  className="flex-1 rounded bg-red-500 py-2 text-white"
+                  onClick={() => handleDelete(item.id)}
+                  className="flex-1 rounded bg-red-500 py-2 text-white hover:bg-red-600"
                 >
                   Delete
                 </button>
