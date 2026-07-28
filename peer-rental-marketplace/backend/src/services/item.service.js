@@ -8,6 +8,7 @@ const createItem = async ({
   deposit,
   categoryId,
   ownerId,
+  imageUrl,
 }) => {
   // Check if category exists
   const category = await prisma.category.findUnique({
@@ -28,6 +29,7 @@ const createItem = async ({
     deposit: Number(deposit),
     categoryId,
     ownerId,
+    imageUrl,
   },
   select: {
     id: true,
@@ -185,6 +187,36 @@ const getItemById = async (id) => {
   return item;
 };
 
+const getMyItems = async (ownerId) => {
+  return prisma.item.findMany({
+    where: {
+      ownerId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      dailyRate: true,
+      deposit: true,
+      imageUrl: true,
+      available: true,
+      createdAt: true,
+      updatedAt: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+        },
+      },
+    },
+  });
+};
+
+
 const updateItem = async (itemId, ownerId, data) => {
   const item = await prisma.item.findUnique({
     where: {
@@ -277,6 +309,7 @@ const deleteItem = async (itemId, ownerId) => {
 module.exports = {
   createItem,
   getAllItems,
+  getMyItems,
   getItemById,
   updateItem,
   deleteItem,

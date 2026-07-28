@@ -16,7 +16,13 @@ const createOrder = async (bookingId, userId) => {
   if (!booking) {
     throw new ApiError(404, "Booking not found");
   }
-
+  console.log("===== PAYMENT DEBUG =====");
+console.log("Booking ID:", booking.id);
+console.log("Booking renterId:", booking.renterId);
+console.log("JWT userId:", userId);
+console.log("Booking status:", booking.status);
+console.log("Payment status:", booking.paymentStatus);
+console.log("=========================");
   if (booking.renterId !== userId) {
     throw new ApiError(403, "You are not authorised");
   }

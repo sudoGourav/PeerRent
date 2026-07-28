@@ -6,6 +6,7 @@ const itemRoutes = require("./routes/item.routes");
 const bookingRoutes = require("./routes/booking.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const paymentRoutes = require("./routes/payment.routes");
+const categoryRoutes = require("./routes/category.routes");
 
 const errorMiddleware = require("./middleware/error.middleware");
 
@@ -23,6 +24,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
+app.use("/api/categories", categoryRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payments", paymentRoutes);

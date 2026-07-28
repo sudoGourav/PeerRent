@@ -1,6 +1,8 @@
 const itemService = require("../services/item.service");
 const asyncHandler = require("../middleware/asyncHandler");
 const ApiError = require("../utils/ApiError");
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
 
 exports.createItem = asyncHandler(async (req, res) => {
   const {
@@ -21,6 +23,24 @@ exports.createItem = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
+  let imageUrl = null;
+
+  if (req.file) {
+    imageUrl = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "peerrent/items",
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result.secure_url);
+        }
+      );
+
+      streamifier.createReadStream(req.file.buffer).pipe(stream);
+    });
+  }
+
   const item = await itemService.createItem({
     title,
     description,
@@ -28,6 +48,7 @@ exports.createItem = asyncHandler(async (req, res) => {
     deposit,
     categoryId,
     ownerId: req.user.id,
+    imageUrl,
   });
 
   res.status(201).json({
@@ -52,6 +73,15 @@ exports.getItemById = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: item,
+  });
+});
+
+exports.getMyItems = asyncHandler(async (req, res) => {
+  const items = await itemService.getMyItems(req.user.id);
+
+  res.json({
+    success: true,
+    data: items,
   });
 });
 
