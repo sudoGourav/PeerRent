@@ -1,13 +1,98 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+
+  role      UserRole @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items      Item[]
+  bookings   Booking[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String?
+
+  createdAt DateTime @default(now())
+
+  items      Item[]
+}
+
+model Item {
+  id          String   @id @default(uuid())
+
+  title       String
+  description String
+
+  dailyRate   Float
+  deposit     Float
+
+  imageUrl    String?
+
+  available   Boolean @default(true)
+
+  ownerId     String
+  owner        User @relation(fields: [ownerId], references: [id])
+
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id])
+
+  bookings    Booking[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([categoryId])
+}
+
+model Booking {
+  id          String @id @default(uuid())
+
+  startDate   DateTime
+  endDate     DateTime
+
+  totalPrice  Float
+
+  status      BookingStatus @default(PENDING)
+
+  renterId    String
+  renter       User @relation(fields: [renterId], references: [id])
+
+  itemId      String
+  item         Item @relation(fields: [itemId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([itemId])
+  @@index([renterId])
 }
