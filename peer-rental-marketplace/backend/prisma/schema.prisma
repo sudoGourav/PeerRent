@@ -75,24 +75,29 @@ model Item {
 }
 
 model Booking {
-  id          String @id @default(uuid())
+  id          String   @id @default(uuid())
 
   startDate   DateTime
   endDate     DateTime
+
+  numberOfDays Int
 
   totalPrice  Float
 
   status      BookingStatus @default(PENDING)
 
+  paymentStatus String @default("PENDING")
+
   renterId    String
-  renter       User @relation(fields: [renterId], references: [id])
+  renter      User @relation(fields: [renterId], references: [id])
 
   itemId      String
-  item         Item @relation(fields: [itemId], references: [id])
+  item        Item @relation(fields: [itemId], references: [id])
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([itemId])
   @@index([renterId])
+  @@index([status])
 }
