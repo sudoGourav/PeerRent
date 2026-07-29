@@ -17,21 +17,12 @@ import {
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [cancelLoading, setCancelLoading] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(null);
 
-  const [pageLoading, setPageLoading] =
-    useState(true);
-
-  const [cancelLoading, setCancelLoading] =
-    useState(null);
-
-  const [paymentLoading, setPaymentLoading] =
-    useState(null);
-
-  const [isModalOpen, setIsModalOpen] =
-    useState(false);
-
-  const [selectedBookingId, setSelectedBookingId] =
-    useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   useEffect(() => {
     loadBookings();
@@ -92,11 +83,9 @@ export default function MyBookings() {
     try {
       setPaymentLoading(booking.id);
 
-      const response =
-        await createOrder(booking.id);
+      const response = await createOrder(booking.id);
 
-      const { order, key } =
-        response.data;
+      const { order, key } = response.data;
 
       const options = {
         key,
@@ -106,9 +95,7 @@ export default function MyBookings() {
         description: booking.item.title,
         order_id: order.id,
 
-        handler: async function (
-          paymentResponse
-        ) {
+        handler: async function (paymentResponse) {
           try {
             await verifyPayment({
               bookingId: booking.id,
@@ -120,9 +107,7 @@ export default function MyBookings() {
                 paymentResponse.razorpay_signature,
             });
 
-            toast.success(
-              "Payment successful!"
-            );
+            toast.success("Payment successful!");
 
             loadBookings();
           } catch (err) {
@@ -142,21 +127,15 @@ export default function MyBookings() {
         },
       };
 
-      const razorpay =
-        new window.Razorpay(options);
+      const razorpay = new window.Razorpay(options);
 
-      razorpay.on(
-        "payment.failed",
-        function (response) {
-          console.error(response.error);
+      razorpay.on("payment.failed", function (response) {
+        console.error(response.error);
 
-          toast.error(
-            response.error.description
-          );
+        toast.error(response.error.description);
 
-          setPaymentLoading(null);
-        }
-      );
+        setPaymentLoading(null);
+      });
 
       razorpay.open();
     } catch (err) {
@@ -201,8 +180,8 @@ export default function MyBookings() {
         loading={cancelLoading !== null}
       />
 
-      <div className="p-8">
-        <h1 className="mb-8 text-3xl font-bold">
+      <div className="px-2 py-4 sm:px-4 md:px-6">
+        <h1 className="mb-8 text-3xl font-bold sm:text-4xl">
           My Bookings
         </h1>
 
@@ -210,82 +189,102 @@ export default function MyBookings() {
           {bookings.map((booking) => (
             <div
               key={booking.id}
-              className="rounded-xl border bg-white p-6 shadow"
+              className="rounded-2xl border bg-white p-5 shadow transition duration-200 hover:shadow-lg sm:p-6"
             >
-              <h2 className="text-xl font-semibold">
-                {booking.item.title}
-              </h2>
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0 flex-1">
+                  <h2 className="break-words text-xl font-semibold">
+                    {booking.item.title}
+                  </h2>
 
-              <p className="mt-3">
-                <strong>Dates:</strong>{" "}
-                {new Date(
-                  booking.startDate
-                ).toLocaleDateString()}
-                {" - "}
-                {new Date(
-                  booking.endDate
-                ).toLocaleDateString()}
-              </p>
+                  <p className="mt-3 text-gray-600">
+                    <strong>Dates:</strong>{" "}
+                    {new Date(
+                      booking.startDate
+                    ).toLocaleDateString()}
+                    {" - "}
+                    {new Date(
+                      booking.endDate
+                    ).toLocaleDateString()}
+                  </p>
 
-              <p className="mt-2">
-                <strong>Total:</strong> ₹
-                {booking.totalPrice}
-              </p>
+                  <p className="mt-2 text-gray-600">
+                    <strong>Total:</strong> ₹
+                    {booking.totalPrice}
+                  </p>
+                </div>
 
-              <p className="mt-2">
-                <strong>Status:</strong>{" "}
-                {booking.status}
-              </p>
+                {/* STATUS BADGES */}
+                <div className="flex flex-col items-end gap-4 self-start">
 
-              <p className="mt-2">
-                <strong>Payment:</strong>{" "}
-                {booking.paymentStatus}
-              </p>
+                  <div className="text-right">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Booking
+                    </p>
 
-              <div className="mt-5 flex gap-3">
-                {booking.status ===
-                  "PENDING" && (
+                    <span
+                      className={`inline-block rounded-full px-4 py-1 text-sm font-semibold ${
+                        booking.status === "PENDING"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : booking.status === "COMPLETED"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {booking.status}
+                    </span>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Payment
+                    </p>
+
+                    <span
+                      className={`inline-block rounded-full px-4 py-1 text-sm font-semibold ${
+                        booking.paymentStatus === "PAID"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-orange-100 text-orange-700"
+                      }`}
+                    >
+                      {booking.paymentStatus}
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+
+                            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                {booking.status === "PENDING" && (
                   <button
                     onClick={() =>
-                      openCancelModal(
-                        booking.id
-                      )
+                      openCancelModal(booking.id)
                     }
                     disabled={
-                      cancelLoading ===
-                        booking.id ||
-                      paymentLoading ===
-                        booking.id
+                      cancelLoading === booking.id ||
+                      paymentLoading === booking.id
                     }
-                    className="rounded-lg bg-red-500 px-5 py-2 text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-400"
+                    className="flex-1 rounded-lg bg-red-500 py-2 font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-400"
                   >
-                    {cancelLoading ===
-                    booking.id
+                    {cancelLoading === booking.id
                       ? "Cancelling..."
                       : "Cancel Booking"}
                   </button>
                 )}
 
-                {booking.paymentStatus ===
-                  "PENDING" &&
-                  booking.status ===
-                    "PENDING" && (
+                {booking.paymentStatus === "PENDING" &&
+                  booking.status === "PENDING" && (
                     <button
                       onClick={() =>
-                        handlePayment(
-                          booking
-                        )
+                        handlePayment(booking)
                       }
                       disabled={
-                        paymentLoading ===
-                          booking.id ||
-                        cancelLoading ===
-                          booking.id
+                        paymentLoading === booking.id ||
+                        cancelLoading === booking.id
                       }
-                      className="rounded-lg bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                      className="flex-1 rounded-lg bg-blue-600 py-2 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
                     >
-                      {paymentLoading ===
-                      booking.id
+                      {paymentLoading === booking.id
                         ? "Processing..."
                         : "Pay Now"}
                     </button>
