@@ -8,7 +8,7 @@ import {
 } from "../services/dashboard.service";
 
 export default function Dashboard() {
-  const [stats, setStats] =useState(null);
+  const [stats, setStats] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [recentBookings, setRecentBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,19 +38,20 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8 px-2 sm:space-y-10">
+      {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold">
+        <h1 className="text-3xl font-bold sm:text-4xl">
           Dashboard
         </h1>
 
-        <p className="mt-2 text-gray-500">
+        <p className="mt-2 text-sm text-gray-500 sm:text-base">
           Welcome to your PeerRent dashboard.
         </p>
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardCard
           title="Total Items"
           value={stats.totalItems}
@@ -80,13 +81,13 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Revenue Section */}
-      <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="mb-6 text-2xl font-semibold">
+      {/* Revenue */}
+      <div className="rounded-2xl bg-white p-5 shadow sm:p-6">
+        <h2 className="mb-6 text-xl font-semibold sm:text-2xl">
           Revenue Summary
         </h2>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <RevenueCard
             title="Total Revenue"
             value={`₹${revenue.totalRevenue}`}
@@ -105,8 +106,8 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Bookings */}
-      <div className="rounded-2xl bg-white p-6 shadow">
-        <h2 className="mb-6 text-2xl font-semibold">
+      <div className="rounded-2xl bg-white p-5 shadow sm:p-6">
+        <h2 className="mb-6 text-xl font-semibold sm:text-2xl">
           Recent Bookings
         </h2>
 
@@ -119,10 +120,10 @@ export default function Dashboard() {
             recentBookings.map((booking) => (
               <div
                 key={booking.id}
-                className="flex items-center justify-between rounded-xl border p-4"
+                className="flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
-                  <h3 className="font-semibold">
+                <div className="min-w-0">
+                  <h3 className="break-words font-semibold">
                     {booking.item.title}
                   </h3>
 
@@ -130,12 +131,12 @@ export default function Dashboard() {
                     {booking.renter.name}
                   </p>
 
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm font-medium text-blue-600">
                     ₹{booking.totalPrice}
                   </p>
                 </div>
 
-                <div className="text-right">
+                <div className="flex flex-col items-start gap-2 sm:items-end">
                   <span
                     className={`rounded-full px-3 py-1 text-sm font-semibold ${
                       booking.status === "PENDING"
@@ -148,7 +149,7 @@ export default function Dashboard() {
                     {booking.status}
                   </span>
 
-                  <p className="mt-2 text-sm text-gray-500">
+                  <p className="text-sm text-gray-500">
                     {new Date(
                       booking.startDate
                     ).toLocaleDateString()}
@@ -170,18 +171,18 @@ function DashboardCard({
   color,
 }) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow">
+    <div className="rounded-2xl bg-white p-5 shadow transition hover:shadow-lg sm:p-6">
       <div
         className={`mb-4 flex h-12 w-12 items-center justify-center rounded-full text-2xl text-white ${color}`}
       >
         {icon}
       </div>
 
-      <h3 className="text-gray-500">
+      <h3 className="text-sm text-gray-500">
         {title}
       </h3>
 
-      <p className="mt-2 text-3xl font-bold">
+      <p className="mt-2 break-words text-3xl font-bold">
         {value}
       </p>
     </div>
@@ -190,12 +191,12 @@ function DashboardCard({
 
 function RevenueCard({ title, value }) {
   return (
-    <div className="rounded-xl bg-gray-50 p-4">
+    <div className="rounded-xl bg-gray-50 p-5">
       <p className="text-sm text-gray-500">
         {title}
       </p>
 
-      <p className="mt-2 text-2xl font-bold">
+      <p className="mt-2 break-words text-2xl font-bold">
         {value}
       </p>
     </div>

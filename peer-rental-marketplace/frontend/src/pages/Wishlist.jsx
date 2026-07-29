@@ -1,22 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
-import Loader from "../components/Loader";
+import CardSkeletonGrid from "../components/CardSkeletonGrid";
+import EmptyState from "../components/EmptyState";
+import ImageWithFallback from "../components/ImageWithFallback";
 
 import { getWishlist } from "../services/wishlist.service";
 import { useWishlist } from "../context/WishlistContext";
 
 export default function Wishlist() {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [removeLoading, setRemoveLoading] = useState(null);
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [removeLoading, setRemoveLoading] =
-    useState(null);
-
-  const { toggleWishlist } =
-    useWishlist();
+  const { toggleWishlist } = useWishlist();
 
   useEffect(() => {
     loadWishlist();
@@ -28,6 +26,11 @@ export default function Wishlist() {
       setItems(res.data);
     } catch (err) {
       console.error(err);
+
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to load wishlist."
+      );
     } finally {
       setLoading(false);
     }
@@ -46,9 +49,9 @@ export default function Wishlist() {
         )
       );
     } catch (err) {
-      alert(
+      toast.error(
         err.response?.data?.message ||
-          "Failed to remove item"
+          "Failed to remove item."
       );
     } finally {
       setRemoveLoading(null);
@@ -56,27 +59,22 @@ export default function Wishlist() {
   };
 
   if (loading) {
-    return (
-      <Loader text="Loading wishlist..." />
-    );
+    return <CardSkeletonGrid />;
   }
 
   if (items.length === 0) {
     return (
-      <div className="py-20 text-center">
-        <h2 className="text-2xl font-bold">
-          Your wishlist is empty ❤️
-        </h2>
-
-        <Link
-          to="/"
-          className="mt-5 inline-block rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
-        >
-          Browse Items
-        </Link>
-      </div>
+      <EmptyState
+        icon="❤️"
+        title="Your wishlist is empty"
+        description="Save your favourite rental items here so you can find them quickly later."
+        buttonText="Browse Items"
+        buttonLink="/"
+      />
     );
-  }  return (
+  }
+
+  return (
     <div>
       <h1 className="mb-8 text-3xl font-bold">
         My Wishlist ❤️
@@ -88,10 +86,13 @@ export default function Wishlist() {
             key={wishlist.id}
             className="rounded-xl border bg-white p-5 shadow"
           >
-            <img
+            <ImageWithFallback
               src={wishlist.item.imageUrl}
               alt={wishlist.item.title}
               className="mb-4 h-40 w-full rounded-lg object-cover"
+              fallbackIcon={
+                wishlist.item.category?.icon || "📦"
+              }
             />
 
             <h2 className="text-xl font-semibold">

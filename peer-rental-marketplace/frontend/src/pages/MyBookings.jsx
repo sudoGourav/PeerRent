@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import Loader from "../components/Loader";
+import toast from "react-hot-toast";
+
+import ListSkeleton from "../components/ListSkeleton";
+import EmptyState from "../components/EmptyState";
+import ConfirmModal from "../components/ConfirmModal";
 
 import {
   getMyBookings,
@@ -23,6 +27,12 @@ export default function MyBookings() {
   const [paymentLoading, setPaymentLoading] =
     useState(null);
 
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
+
+  const [selectedBookingId, setSelectedBookingId] =
+    useState(null);
+
   useEffect(() => {
     loadBookings();
   }, []);
@@ -33,24 +43,45 @@ export default function MyBookings() {
       setBookings(res.data);
     } catch (err) {
       console.error(err);
+
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to load bookings."
+      );
     } finally {
       setPageLoading(false);
     }
   };
 
-  const handleCancel = async (id) => {
+  const openCancelModal = (id) => {
+    setSelectedBookingId(id);
+    setIsModalOpen(true);
+  };
+
+  const closeCancelModal = () => {
+    if (cancelLoading) return;
+
+    setIsModalOpen(false);
+    setSelectedBookingId(null);
+  };
+
+  const handleCancel = async () => {
     try {
-      setCancelLoading(id);
+      setCancelLoading(selectedBookingId);
 
-      await cancelBooking(id);
+      await cancelBooking(selectedBookingId);
 
-      alert("Booking cancelled");
+      toast.success("Booking cancelled.");
+
+      closeCancelModal();
 
       loadBookings();
     } catch (err) {
-      alert(
+      console.error(err);
+
+      toast.error(
         err.response?.data?.message ||
-          "Cancel failed"
+          "Cancel failed."
       );
     } finally {
       setCancelLoading(null);
@@ -89,15 +120,17 @@ export default function MyBookings() {
                 paymentResponse.razorpay_signature,
             });
 
-            alert("Payment Successful!");
+            toast.success(
+              "Payment successful!"
+            );
 
             loadBookings();
           } catch (err) {
             console.error(err);
 
-            alert(
+            toast.error(
               err.response?.data?.message ||
-                "Payment verification failed"
+                "Payment verification failed."
             );
           } finally {
             setPaymentLoading(null);
@@ -117,7 +150,7 @@ export default function MyBookings() {
         function (response) {
           console.error(response.error);
 
-          alert(
+          toast.error(
             response.error.description
           );
 
@@ -129,10 +162,9 @@ export default function MyBookings() {
     } catch (err) {
       console.error(err);
 
-      alert(
+      toast.error(
         err.response?.data?.message ||
-          err.message ||
-          "Payment failed"
+          "Payment failed."
       );
 
       setPaymentLoading(null);
@@ -140,97 +172,129 @@ export default function MyBookings() {
   };
 
   if (pageLoading) {
+    return <ListSkeleton />;
+  }
+
+  if (bookings.length === 0) {
     return (
-      <Loader text="Loading bookings..." />
+      <EmptyState
+        icon="📅"
+        title="No Bookings Yet"
+        description="Browse available items and make your first booking."
+        buttonText="Browse Items"
+        buttonLink="/"
+      />
     );
-  }  return (
-    <div style={{ padding: "30px" }}>
-      <h1>My Bookings</h1>
+  }
 
-      {bookings.length === 0 && (
-        <p>No bookings found.</p>
-      )}
+  return (
+    <>
+      <ConfirmModal
+        isOpen={isModalOpen}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking? This action cannot be undone."
+        confirmText="Cancel Booking"
+        cancelText="Keep Booking"
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        onConfirm={handleCancel}
+        onCancel={closeCancelModal}
+        loading={cancelLoading !== null}
+      />
 
-      {bookings.map((booking) => (
-        <div
-          key={booking.id}
-          style={{
-            border: "1px solid #ccc",
-            borderRadius: "10px",
-            padding: "20px",
-            marginBottom: "20px",
-          }}
-        >
-          <h2>{booking.item.title}</h2>
+      <div className="p-8">
+        <h1 className="mb-8 text-3xl font-bold">
+          My Bookings
+        </h1>
 
-          <p>
-            <strong>Dates:</strong>{" "}
-            {new Date(
-              booking.startDate
-            ).toLocaleDateString()}
-            {" - "}
-            {new Date(
-              booking.endDate
-            ).toLocaleDateString()}
-          </p>
-
-          <p>
-            <strong>Total:</strong> ₹
-            {booking.totalPrice}
-          </p>
-
-          <p>
-            <strong>Status:</strong>{" "}
-            {booking.status}
-          </p>
-
-          <p>
-            <strong>Payment:</strong>{" "}
-            {booking.paymentStatus}
-          </p>
-
-          {booking.status === "PENDING" && (
-            <button
-              onClick={() =>
-                handleCancel(booking.id)
-              }
-              disabled={
-                cancelLoading === booking.id ||
-                paymentLoading === booking.id
-              }
+        <div className="space-y-6">
+          {bookings.map((booking) => (
+            <div
+              key={booking.id}
+              className="rounded-xl border bg-white p-6 shadow"
             >
-              {cancelLoading === booking.id
-                ? "Cancelling..."
-                : "Cancel Booking"}
-            </button>
-          )}
+              <h2 className="text-xl font-semibold">
+                {booking.item.title}
+              </h2>
 
-          {booking.paymentStatus ===
-            "PENDING" &&
-            booking.status ===
-              "PENDING" && (
-              <button
-                style={{
-                  marginLeft: "10px",
-                }}
-                onClick={() =>
-                  handlePayment(booking)
-                }
-                disabled={
-                  paymentLoading ===
-                    booking.id ||
-                  cancelLoading ===
+              <p className="mt-3">
+                <strong>Dates:</strong>{" "}
+                {new Date(
+                  booking.startDate
+                ).toLocaleDateString()}
+                {" - "}
+                {new Date(
+                  booking.endDate
+                ).toLocaleDateString()}
+              </p>
+
+              <p className="mt-2">
+                <strong>Total:</strong> ₹
+                {booking.totalPrice}
+              </p>
+
+              <p className="mt-2">
+                <strong>Status:</strong>{" "}
+                {booking.status}
+              </p>
+
+              <p className="mt-2">
+                <strong>Payment:</strong>{" "}
+                {booking.paymentStatus}
+              </p>
+
+              <div className="mt-5 flex gap-3">
+                {booking.status ===
+                  "PENDING" && (
+                  <button
+                    onClick={() =>
+                      openCancelModal(
+                        booking.id
+                      )
+                    }
+                    disabled={
+                      cancelLoading ===
+                        booking.id ||
+                      paymentLoading ===
+                        booking.id
+                    }
+                    className="rounded-lg bg-red-500 px-5 py-2 text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-400"
+                  >
+                    {cancelLoading ===
                     booking.id
-                }
-              >
-                {paymentLoading ===
-                booking.id
-                  ? "Processing..."
-                  : "Pay Now"}
-              </button>
-            )}
+                      ? "Cancelling..."
+                      : "Cancel Booking"}
+                  </button>
+                )}
+
+                {booking.paymentStatus ===
+                  "PENDING" &&
+                  booking.status ===
+                    "PENDING" && (
+                    <button
+                      onClick={() =>
+                        handlePayment(
+                          booking
+                        )
+                      }
+                      disabled={
+                        paymentLoading ===
+                          booking.id ||
+                        cancelLoading ===
+                          booking.id
+                      }
+                      className="rounded-lg bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                    >
+                      {paymentLoading ===
+                      booking.id
+                        ? "Processing..."
+                        : "Pay Now"}
+                    </button>
+                  )}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+    </>
   );
 }

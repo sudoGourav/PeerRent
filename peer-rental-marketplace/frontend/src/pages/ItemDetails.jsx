@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Loader from "../components/Loader";
+import ImageWithFallback from "../components/ImageWithFallback";
+import toast from "react-hot-toast";
 
 import {
   getItemReviews,
@@ -131,9 +133,7 @@ export default function ItemDetails() {
 
   const handleBooking = async () => {
     if (!startDate || !endDate) {
-      alert(
-        "Please select both dates"
-      );
+      toast.error("Please select both dates.");
       return;
     }
 
@@ -152,13 +152,11 @@ export default function ItemDetails() {
             .split("T")[0],
       });
 
-      alert(
-        "Booking Created Successfully"
-      );
+      toast.success("Booking created successfully!");
     } catch (err) {
-      alert(
+      toast.error(
         err.response?.data?.message ||
-          "Booking Failed"
+          "Booking failed."
       );
     } finally {
       setBookingLoading(false);
@@ -168,9 +166,7 @@ export default function ItemDetails() {
   const handleReviewSubmit =
     async () => {
       if (!comment.trim()) {
-        alert(
-          "Please enter a review."
-        );
+        toast.error("Please enter a review.");
         return;
       }
 
@@ -183,16 +179,14 @@ export default function ItemDetails() {
           comment,
         });
 
-        alert(
-          "Review added successfully!"
-        );
+        toast.success("Review added successfully!");
 
         setRating(5);
         setComment("");
 
         loadReviews();
       } catch (err) {
-        alert(
+        toast.error(
           err.response?.data?.message ||
             "Failed to add review."
         );
@@ -228,19 +222,14 @@ export default function ItemDetails() {
       <div className="grid gap-10 lg:grid-cols-2">
         {/* Image Section */}
         <div className="h-96 overflow-hidden rounded-2xl bg-gray-100 shadow">
-          {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt={item.title}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <span className="text-8xl">
-                {item.category?.icon || "📦"}
-              </span>
-            </div>
-          )}
+          <ImageWithFallback
+            src={item.imageUrl}
+            alt={item.title}
+            className="h-full w-full object-cover"
+            fallbackIcon={
+              item.category?.icon || "📦"
+            }
+          />
         </div>
 
         {/* Item Details */}
@@ -409,9 +398,7 @@ export default function ItemDetails() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Reviews */}
+      </div>      {/* Reviews */}
       <div className="mt-10 rounded-2xl border bg-white p-6 shadow">
         <h2 className="text-2xl font-semibold">
           Reviews
@@ -468,7 +455,7 @@ export default function ItemDetails() {
             <button
               onClick={handleReviewSubmit}
               disabled={reviewLoading}
-              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-gray-400"
+              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400"
             >
               {reviewLoading
                 ? "Submitting..."

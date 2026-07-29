@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
+
 import { useWishlist } from "../context/WishlistContext";
+import ImageWithFallback from "./ImageWithFallback";
 
 export default function ItemCard({ item }) {
   const { wishlistIds, toggleWishlist } = useWishlist();
@@ -10,9 +13,9 @@ export default function ItemCard({ item }) {
     try {
       await toggleWishlist(item.id);
     } catch (err) {
-      alert(
+      toast.error(
         err.response?.data?.message ||
-          "Wishlist operation failed"
+          "Wishlist operation failed."
       );
     }
   };
@@ -28,17 +31,12 @@ export default function ItemCard({ item }) {
           {isWishlisted ? "❤️" : "🤍"}
         </button>
 
-        {item.imageUrl ? (
-          <img
-            src={item.imageUrl}
-            alt={item.title}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-5xl">
-            {item.category?.icon || "📦"}
-          </div>
-        )}
+        <ImageWithFallback
+          src={item.imageUrl}
+          alt={item.title}
+          className="h-full w-full object-cover"
+          fallbackIcon={item.category?.icon || "📦"}
+        />
       </div>
 
       {/* Item Title */}

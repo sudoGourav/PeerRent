@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import ItemForm from "../components/ItemForm";
 import Loader from "../components/Loader";
@@ -102,16 +103,16 @@ export default function EditItem() {
 
       await updateItem(id, formData);
 
-      alert("Item updated successfully!");
+      toast.success("Item updated successfully!");
 
       navigate("/my-items");
     } catch (err) {
       console.error(err);
 
-      alert(
-        err.response?.data?.message ||
-          "Failed to update item."
-      );
+      toast.error(
+  err.response?.data?.message ||
+  "Failed to update item."
+);
     } finally {
       setLoading(false);
     }

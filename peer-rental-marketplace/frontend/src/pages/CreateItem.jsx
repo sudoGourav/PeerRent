@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { getCategories } from "../services/category.service";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+
+import { getCategories } from "../services/category.service";
 import { createItem } from "../services/item.service";
 import ItemForm from "../components/ItemForm";
 
@@ -12,10 +14,13 @@ export default function CreateItem() {
   const [dailyRate, setDailyRate] = useState("");
   const [deposit, setDeposit] = useState("");
   const [categoryId, setCategoryId] = useState("");
+
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState("");
-  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadCategories();
@@ -27,6 +32,11 @@ export default function CreateItem() {
       setCategories(res.data);
     } catch (err) {
       console.error(err);
+
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to load categories."
+      );
     }
   };
 
@@ -38,76 +48,77 @@ export default function CreateItem() {
     setImage(file);
     setPreview(URL.createObjectURL(file));
   };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (
-    !title ||
-    !description ||
-    !dailyRate ||
-    !deposit ||
-    !categoryId
-  ) {
-    alert("Please fill all fields.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const formData = new FormData();
-
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("dailyRate", dailyRate);
-    formData.append("deposit", deposit);
-    formData.append("categoryId", categoryId);
-
-    if (image) {
-      formData.append("image", image);
+    if (
+      !title ||
+      !description ||
+      !dailyRate ||
+      !deposit ||
+      !categoryId
+    ) {
+      toast.error("Please fill all fields.");
+      return;
     }
 
-    await createItem(formData);
+    try {
+      setLoading(true);
 
-    alert("Item created successfully!");
+      const formData = new FormData();
 
-    navigate("/");
-  } catch (err) {
-    console.error(err);
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("dailyRate", dailyRate);
+      formData.append("deposit", deposit);
+      formData.append("categoryId", categoryId);
 
-    alert(
-      err.response?.data?.message ||
-      "Failed to create item."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      if (image) {
+        formData.append("image", image);
+      }
+
+      await createItem(formData);
+
+      toast.success("Item created successfully!");
+
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to create item."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-  <>
-    <h1 className="mb-8 text-3xl font-bold">
-      List a New Item
-    </h1>
+    <>
+      <h1 className="mb-8 text-3xl font-bold sm:text-4xl">
+        List a New Item
+      </h1>
 
-    <ItemForm
-      title={title}
-      setTitle={setTitle}
-      description={description}
-      setDescription={setDescription}
-      dailyRate={dailyRate}
-      setDailyRate={setDailyRate}
-      deposit={deposit}
-      setDeposit={setDeposit}
-      categoryId={categoryId}
-      setCategoryId={setCategoryId}
-      categories={categories}
-      preview={preview}
-      handleImageChange={handleImageChange}
-      handleSubmit={handleSubmit}
-      loading={loading}
-      submitText="Create Item"
-    />
-  </>
-);
+      <ItemForm
+        title={title}
+        setTitle={setTitle}
+        description={description}
+        setDescription={setDescription}
+        dailyRate={dailyRate}
+        setDailyRate={setDailyRate}
+        deposit={deposit}
+        setDeposit={setDeposit}
+        categoryId={categoryId}
+        setCategoryId={setCategoryId}
+        categories={categories}
+        preview={preview}
+        handleImageChange={handleImageChange}
+        handleSubmit={handleSubmit}
+        loading={loading}
+        submitText="Create Item"
+      />
+    </>
+  );
 }

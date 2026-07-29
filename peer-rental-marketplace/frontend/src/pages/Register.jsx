@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import { register } from "../services/auth.service";
 
@@ -29,14 +30,14 @@ export default function Register() {
 
       await register(form);
 
-      alert("Registration Successful");
+      toast.success("Registration successful!");
 
       navigate("/login");
     } catch (err) {
-      alert(
-        err.response?.data?.message ||
-          "Registration Failed"
-      );
+      toast.error(
+  err.response?.data?.message ||
+  "Registration failed."
+);
     } finally {
       setLoading(false);
     }

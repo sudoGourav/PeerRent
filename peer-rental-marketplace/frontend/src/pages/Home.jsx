@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 import { getItems } from "../services/item.service";
 import { getCategories } from "../services/category.service";
 
 import ItemCard from "../components/ItemCard";
-import Loader from "../components/Loader";
+import CardSkeletonGrid from "../components/CardSkeletonGrid";
+import EmptyState from "../components/EmptyState";
 
 export default function Home() {
   const [items, setItems] = useState([]);
@@ -28,17 +30,24 @@ export default function Home() {
       console.log("Categories:", categoriesRes);
     } catch (err) {
       console.error(err);
+
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to load items."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const filteredItems = items.filter((item) =>
-    item.title.toLowerCase().includes(search.toLowerCase())
+    item.title
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
   if (loading) {
-    return <Loader text="Loading items..." />;
+    return <CardSkeletonGrid />;
   }
 
   return (
@@ -65,15 +74,15 @@ export default function Home() {
 
       {/* Items Grid */}
       {filteredItems.length === 0 ? (
-        <div className="py-16 text-center">
-          <h2 className="text-2xl font-semibold text-gray-700">
-            No items found
-          </h2>
-
-          <p className="mt-2 text-gray-500">
-            Try a different search keyword.
-          </p>
-        </div>
+        <EmptyState
+          icon="🔍"
+          title="No Items Found"
+          description="Try changing your search keyword or browse all available rental items."
+          buttonText={
+            search ? "Clear Search" : undefined
+          }
+          onButtonClick={() => setSearch("")}
+        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => (
