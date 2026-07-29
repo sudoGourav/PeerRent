@@ -9,6 +9,8 @@ const paymentRoutes = require("./routes/payment.routes");
 const reviewRoutes = require("./routes/review.routes");
 const categoryRoutes = require("./routes/category.routes");
 const wishlistRoutes = require("./routes/wishlist.routes");
+const notificationRoutes = require("./routes/notification.routes");
+const testRoutes = require("./routes/test.routes");
 
 const errorMiddleware = require("./middleware/error.middleware");
 
@@ -32,6 +34,8 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/test", testRoutes);
 
 // Always last
 app.use(errorMiddleware);

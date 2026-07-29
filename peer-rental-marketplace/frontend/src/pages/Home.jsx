@@ -4,37 +4,42 @@ import { getItems } from "../services/item.service";
 import { getCategories } from "../services/category.service";
 
 import ItemCard from "../components/ItemCard";
+import Loader from "../components/Loader";
 
 export default function Home() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadItems();
-    loadCategories();
+    loadData();
   }, []);
 
-  const loadItems = async () => {
+  const loadData = async () => {
     try {
-      const res = await getItems();
-      setItems(res.data.items || []);
+      const [itemsRes, categoriesRes] = await Promise.all([
+        getItems(),
+        getCategories(),
+      ]);
+
+      setItems(itemsRes.data.items || []);
+
+      // Keep for future category filter implementation
+      console.log("Categories:", categoriesRes);
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const res = await getCategories();
-      console.log("Categories:", res);
-    } catch (err) {
-      console.error("Category Error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const filteredItems = items.filter((item) =>
     item.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (loading) {
+    return <Loader text="Loading items..." />;
+  }
 
   return (
     <div>
@@ -45,7 +50,8 @@ export default function Home() {
         </h1>
 
         <p className="mt-4 text-lg">
-          Peer-to-peer rental marketplace for cameras, laptops, bikes and more.
+          Peer-to-peer rental marketplace for cameras,
+          laptops, bikes and more.
         </p>
 
         <input
@@ -58,14 +64,26 @@ export default function Home() {
       </section>
 
       {/* Items Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredItems.map((item) => (
-          <ItemCard
-            key={item.id}
-            item={item}
-          />
-        ))}
-      </div>
+      {filteredItems.length === 0 ? (
+        <div className="py-16 text-center">
+          <h2 className="text-2xl font-semibold text-gray-700">
+            No items found
+          </h2>
+
+          <p className="mt-2 text-gray-500">
+            Try a different search keyword.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredItems.map((item) => (
+            <ItemCard
+              key={item.id}
+              item={item}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

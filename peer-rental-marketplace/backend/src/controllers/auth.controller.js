@@ -42,6 +42,46 @@ exports.login = asyncHandler(async (req, res) => {
   });
 });
 
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is required",
+    });
+  }
+
+  const result = await authService.forgotPassword(email);
+
+  res.json({
+    success: true,
+    message: result.message,
+  });
+});
+
+exports.resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({
+      success: false,
+      message: "Password is required",
+    });
+  }
+
+  const result = await authService.resetPassword(
+    token,
+    password
+  );
+
+  res.json({
+    success: true,
+    message: result.message,
+  });
+});
+
 exports.profile = asyncHandler(async (req, res) => {
   const user = await prisma.user.findUnique({
     where: {

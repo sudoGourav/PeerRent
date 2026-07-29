@@ -10,6 +10,9 @@ import CreateItem from "./pages/CreateItem";
 import MyItems from "./pages/MyItems";
 import EditItem from "./pages/EditItem";
 import Wishlist from "./pages/Wishlist";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import Notifications from "./pages/Notifications";
 
 import MainLayout from "./layouts/MainLayout";
 import PrivateRoute from "./components/PrivateRoute";
@@ -73,6 +76,16 @@ function App() {
     </PrivateRoute>
   }
 />
+<Route
+  path="/forgot-password"
+  element={<ForgotPassword />}
+/>
+<Route
+  path="/reset-password/:token"
+  element={<ResetPassword />}
+/>
+
+
 
       {/* Protected Routes */}
       <Route
@@ -85,6 +98,16 @@ function App() {
           </PrivateRoute>
         }
       />
+      <Route
+  path="/notifications"
+  element={
+    <PrivateRoute>
+      <MainLayout>
+        <Notifications />
+      </MainLayout>
+    </PrivateRoute>
+  }
+/>
 
       <Route
         path="/bookings"

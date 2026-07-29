@@ -1,14 +1,24 @@
 const prisma = require("../prisma/prisma");
 const ApiError = require("../utils/ApiError");
+const {
+  createNotification,
+} = require("./notification.service");
 
 const createReview = async (userId, data) => {
   const { itemId, rating, comment } = data;
 
   const item = await prisma.item.findUnique({
-    where: {
-      id: itemId,
+  where: {
+    id: itemId,
+  },
+  include: {
+    owner: {
+      select: {
+        id: true,
+      },
     },
-  });
+  },
+});
 
   if (!item) {
     throw new ApiError(404, "Item not found");
@@ -67,6 +77,19 @@ if (item.ownerId === userId) {
       },
     },
   });
+  try {
+  await createNotification({
+    userId: item.owner.id,
+    title: "New Review Received",
+    message: `${review.user.name} left a ${review.rating}-star review for your item.`,
+    type: "REVIEW",
+  });
+} catch (error) {
+  console.error(
+    "Failed to create review notification:",
+    error.message
+  );
+}
 
   return review;
 };

@@ -26,12 +26,41 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum NotificationType {
+  BOOKING
+  PAYMENT
+  REVIEW
+  SYSTEM
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+  message   String
+
+  type       NotificationType
+  isRead     Boolean @default(false)
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
 model User {
   id       String  @id @default(uuid())
   name     String
   email    String  @unique
   password String
   phone    String?
+
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
 
   role UserRole @default(USER)
 
@@ -41,6 +70,7 @@ model User {
   items      Item[]
   bookings   Booking[]
   reviews    Review[]
+  notifications Notification[]
   wishlists  Wishlist[]
 }
 

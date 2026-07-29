@@ -1,5 +1,14 @@
 const prisma = require("../prisma/prisma");
 const ApiError = require("../utils/ApiError");
+const {
+  sendBookingCreatedEmail,
+  sendOwnerBookingNotificationEmail,
+  sendBookingStatusEmail,
+} = require("./email.service");
+const {
+  createNotification,
+} = require("./notification.service");
+
 
 const calculateDays = (startDate, endDate) => {
   const start = new Date(startDate);
@@ -92,37 +101,100 @@ const createBooking = async ({
     item.dailyRate * numberOfDays;
 
   const booking = await prisma.booking.create({
-    data: {
-      itemId,
-      renterId,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      numberOfDays,
-      totalPrice,
-    },
+  data: {
+    itemId,
+    renterId,
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+    numberOfDays,
+    totalPrice,
+  },
 
-    include: {
-      item: {
-        select: {
-          id: true,
-          title: true,
-          imageUrl: true,
-          dailyRate: true,
+  include: {
+    item: {
+      select: {
+        id: true,
+        title: true,
+        imageUrl: true,
+        dailyRate: true,
+
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
+    },
 
-      renter: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
+    renter: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
       },
     },
+  },
+});
+
+try {
+  await sendBookingCreatedEmail({
+    email: booking.renter.email,
+    customerName: booking.renter.name,
+    itemTitle: booking.item.title,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    totalPrice: booking.totalPrice,
+  });
+} catch (error) {
+  console.error(
+    "Failed to send booking confirmation email:",
+    error.message
+  );
+}
+try {
+  await sendOwnerBookingNotificationEmail({
+    email: booking.item.owner.email,
+    ownerName: booking.item.owner.name,
+    renterName: booking.renter.name,
+    itemTitle: booking.item.title,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    totalPrice: booking.totalPrice,
+  });
+} catch (error) {
+  console.error(
+    "Failed to send owner notification email:",
+    error.message
+  );
+}
+
+  try {
+  // Notify owner
+  await createNotification({
+    userId: booking.item.owner.id,
+    title: "New Booking Request",
+    message: `${booking.renter.name} requested to book "${booking.item.title}".`,
+    type: "BOOKING",
   });
 
-  return booking;
+  // Notify renter
+  await createNotification({
+    userId: booking.renter.id,
+    title: "Booking Request Submitted",
+    message: `Your booking request for "${booking.item.title}" has been submitted.`,
+    type: "BOOKING",
+  });
+} catch (error) {
+  console.error(
+    "Failed to create booking notifications:",
+    error.message
+  );
+}
+return booking;
 };
+
 const getMyBookings = async (userId) => {
   return await prisma.booking.findMany({
     where: {
@@ -290,16 +362,58 @@ const updateBookingStatus = async (
     },
   });
 
+  try {
+  await sendBookingStatusEmail({
+    email: updatedBooking.renter.email,
+    customerName: updatedBooking.renter.name,
+    itemTitle: updatedBooking.item.title,
+    status: updatedBooking.status,
+  });
+} catch (error) {
+  console.error(
+    "Failed to send booking status email:",
+    error.message
+  );
+}
+  try {
+  await createNotification({
+    userId: updatedBooking.renter.id,
+    title: "Booking Status Updated",
+    message: `Your booking for "${updatedBooking.item.title}" is now ${updatedBooking.status}.`,
+    type: "BOOKING",
+  });
+} catch (error) {
+  console.error(
+    "Failed to create booking status notification:",
+    error.message
+  );
+}
+
   return updatedBooking;
 };
 
-const cancelBooking = async (
-  bookingId,
-  renterId
-) => {
+const cancelBooking = async (bookingId, renterId) => {
   const booking = await prisma.booking.findUnique({
     where: {
       id: bookingId,
+    },
+    include: {
+      renter: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      item: {
+        select: {
+          title: true,
+          owner: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -324,7 +438,7 @@ const cancelBooking = async (
     );
   }
 
-  return await prisma.booking.update({
+  const updatedBooking = await prisma.booking.update({
     where: {
       id: bookingId,
     },
@@ -332,6 +446,31 @@ const cancelBooking = async (
       status: "CANCELLED",
     },
   });
+
+  try {
+    // Notify owner
+    await createNotification({
+      userId: booking.item.owner.id,
+      title: "Booking Cancelled",
+      message: `${booking.renter.name} cancelled the booking for "${booking.item.title}".`,
+      type: "BOOKING",
+    });
+
+    // Notify renter
+    await createNotification({
+      userId: booking.renter.id,
+      title: "Booking Cancelled",
+      message: `Your booking for "${booking.item.title}" has been cancelled.`,
+      type: "BOOKING",
+    });
+  } catch (error) {
+    console.error(
+      "Failed to create cancellation notifications:",
+      error.message
+    );
+  }
+
+  return updatedBooking;
 };
 const getUnavailableDates = async (itemId) => {
   return await prisma.booking.findMany({

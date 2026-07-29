@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import Loader from "../components/Loader";
+
 import {
   getMyBookings,
   cancelBooking,
@@ -12,6 +14,15 @@ import {
 export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
 
+  const [pageLoading, setPageLoading] =
+    useState(true);
+
+  const [cancelLoading, setCancelLoading] =
+    useState(null);
+
+  const [paymentLoading, setPaymentLoading] =
+    useState(null);
+
   useEffect(() => {
     loadBookings();
   }, []);
@@ -19,84 +30,120 @@ export default function MyBookings() {
   const loadBookings = async () => {
     try {
       const res = await getMyBookings();
-
-      // Adjust if your API returns a different structure
       setBookings(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setPageLoading(false);
     }
   };
 
   const handleCancel = async (id) => {
     try {
+      setCancelLoading(id);
+
       await cancelBooking(id);
 
       alert("Booking cancelled");
 
       loadBookings();
     } catch (err) {
-      alert(err.response?.data?.message || "Cancel failed");
+      alert(
+        err.response?.data?.message ||
+          "Cancel failed"
+      );
+    } finally {
+      setCancelLoading(null);
     }
   };
 
   const handlePayment = async (booking) => {
-  try {
-    const response = await createOrder(booking.id);
+    try {
+      setPaymentLoading(booking.id);
 
-    const { order, key } = response.data;
+      const response =
+        await createOrder(booking.id);
 
-    const options = {
-      key,
-      amount: order.amount,
-      currency: order.currency,
-      name: "PeerRent",
-      description: booking.item.title,
-      order_id: order.id,
+      const { order, key } =
+        response.data;
 
-      handler: async function (paymentResponse) {
-        try {
-          await verifyPayment({
-            bookingId: booking.id,
-            razorpay_order_id: paymentResponse.razorpay_order_id,
-            razorpay_payment_id: paymentResponse.razorpay_payment_id,
-            razorpay_signature: paymentResponse.razorpay_signature,
-          });
+      const options = {
+        key,
+        amount: order.amount,
+        currency: order.currency,
+        name: "PeerRent",
+        description: booking.item.title,
+        order_id: order.id,
 
-          alert("Payment Successful!");
-          loadBookings();
-        } catch (err) {
-          console.error(err);
+        handler: async function (
+          paymentResponse
+        ) {
+          try {
+            await verifyPayment({
+              bookingId: booking.id,
+              razorpay_order_id:
+                paymentResponse.razorpay_order_id,
+              razorpay_payment_id:
+                paymentResponse.razorpay_payment_id,
+              razorpay_signature:
+                paymentResponse.razorpay_signature,
+            });
+
+            alert("Payment Successful!");
+
+            loadBookings();
+          } catch (err) {
+            console.error(err);
+
+            alert(
+              err.response?.data?.message ||
+                "Payment verification failed"
+            );
+          } finally {
+            setPaymentLoading(null);
+          }
+        },
+
+        theme: {
+          color: "#2563eb",
+        },
+      };
+
+      const razorpay =
+        new window.Razorpay(options);
+
+      razorpay.on(
+        "payment.failed",
+        function (response) {
+          console.error(response.error);
+
           alert(
-            err.response?.data?.message ||
-            "Payment verification failed"
+            response.error.description
           );
+
+          setPaymentLoading(null);
         }
-      },
+      );
 
-      theme: {
-        color: "#2563eb",
-      },
-    };
+      razorpay.open();
+    } catch (err) {
+      console.error(err);
 
-    const razorpay = new window.Razorpay(options);
+      alert(
+        err.response?.data?.message ||
+          err.message ||
+          "Payment failed"
+      );
 
-    razorpay.on("payment.failed", function (response) {
-      console.error(response.error);
-      alert(response.error.description);
-    });
+      setPaymentLoading(null);
+    }
+  };
 
-    razorpay.open();
-  } catch (err) {
-    console.error(err);
-    alert(
-      err.response?.data?.message ||
-      err.message ||
-      "Payment failed"
+  if (pageLoading) {
+    return (
+      <Loader text="Loading bookings..." />
     );
-  }
-};
-
-  return (
+  }  return (
     <div style={{ padding: "30px" }}>
       <h1>My Bookings</h1>
 
@@ -147,20 +194,41 @@ export default function MyBookings() {
               onClick={() =>
                 handleCancel(booking.id)
               }
+              disabled={
+                cancelLoading === booking.id ||
+                paymentLoading === booking.id
+              }
             >
-              Cancel Booking
+              {cancelLoading === booking.id
+                ? "Cancelling..."
+                : "Cancel Booking"}
             </button>
           )}
 
-          {booking.paymentStatus === "PENDING" &&
- booking.status === "PENDING" && (
-  <button
-    style={{ marginLeft: "10px" }}
-    onClick={() => handlePayment(booking)}
-  >
-    Pay Now
-  </button>
-)}
+          {booking.paymentStatus ===
+            "PENDING" &&
+            booking.status ===
+              "PENDING" && (
+              <button
+                style={{
+                  marginLeft: "10px",
+                }}
+                onClick={() =>
+                  handlePayment(booking)
+                }
+                disabled={
+                  paymentLoading ===
+                    booking.id ||
+                  cancelLoading ===
+                    booking.id
+                }
+              >
+                {paymentLoading ===
+                booking.id
+                  ? "Processing..."
+                  : "Pay Now"}
+              </button>
+            )}
         </div>
       ))}
     </div>

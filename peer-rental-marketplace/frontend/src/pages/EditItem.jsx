@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import ItemForm from "../components/ItemForm";
+import Loader from "../components/Loader";
 
 import { getCategories } from "../services/category.service";
 import {
@@ -24,6 +25,10 @@ export default function EditItem() {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState("");
 
+  // Page loading
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // Form submission loading
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -31,84 +36,90 @@ export default function EditItem() {
   }, []);
 
   const loadData = async () => {
-  try {
-    const [categoriesRes, itemRes] = await Promise.all([
-      getCategories(),
-      getItemById(id),
-    ]);
+    try {
+      const [categoriesRes, itemRes] = await Promise.all([
+        getCategories(),
+        getItemById(id),
+      ]);
 
-    setCategories(categoriesRes.data);
+      setCategories(categoriesRes.data);
 
-    const item = itemRes.data;
+      const item = itemRes.data;
 
-    setTitle(item.title);
-    setDescription(item.description);
-    setDailyRate(item.dailyRate);
-    setDeposit(item.deposit);
-    setCategoryId(item.category.id);
+      setTitle(item.title);
+      setDescription(item.description);
+      setDailyRate(item.dailyRate);
+      setDeposit(item.deposit);
+      setCategoryId(item.category.id);
 
-    // Show the current Cloudinary image
-    setPreview(item.imageUrl);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to load item.");
-  }
-};
+      // Show existing Cloudinary image
+      setPreview(item.imageUrl);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load item.");
+    } finally {
+      setPageLoading(false);
+    }
+  };
 
   const handleImageChange = (e) => {
-  const file = e.target.files[0];
+    const file = e.target.files[0];
 
-  if (!file) return;
+    if (!file) return;
 
-  setImage(file);
-  setPreview(URL.createObjectURL(file));
-};
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
+  };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (
-    !title ||
-    !description ||
-    !dailyRate ||
-    !deposit ||
-    !categoryId
-  ) {
-    alert("Please fill all fields.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const formData = new FormData();
-
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("dailyRate", dailyRate);
-    formData.append("deposit", deposit);
-    formData.append("categoryId", categoryId);
-
-    if (image) {
-      formData.append("image", image);
+    if (
+      !title ||
+      !description ||
+      !dailyRate ||
+      !deposit ||
+      !categoryId
+    ) {
+      alert("Please fill all fields.");
+      return;
     }
 
-    await updateItem(id, formData);
+    try {
+      setLoading(true);
 
-    alert("Item updated successfully!");
+      const formData = new FormData();
 
-    navigate("/my-items");
-  } catch (err) {
-    console.error(err);
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("dailyRate", dailyRate);
+      formData.append("deposit", deposit);
+      formData.append("categoryId", categoryId);
 
-    alert(
-      err.response?.data?.message ||
-      "Failed to update item."
-    );
-  } finally {
-    setLoading(false);
+      if (image) {
+        formData.append("image", image);
+      }
+
+      await updateItem(id, formData);
+
+      alert("Item updated successfully!");
+
+      navigate("/my-items");
+    } catch (err) {
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+          "Failed to update item."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (pageLoading) {
+    return <Loader text="Loading item..." />;
   }
-};
 
   return (
     <>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+import Loader from "../components/Loader";
 
 import {
   getMyItems,
@@ -9,42 +10,64 @@ import {
 
 export default function MyItems() {
   const [items, setItems] = useState([]);
+
+  const [pageLoading, setPageLoading] =
+    useState(true);
+
+  const [deleteLoading, setDeleteLoading] =
+    useState(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
     loadItems();
   }, []);
-  const handleDelete = async (id) => {
-  const confirmed = window.confirm(
-    "Are you sure you want to delete this item?"
-  );
 
-  if (!confirmed) return;
-
-  try {
-    await deleteItem(id);
-
-    setItems((prev) =>
-      prev.filter((item) => item.id !== id)
-    );
-
-    alert("Item deleted successfully.");
-  } catch (err) {
-    console.error(err);
-    alert(
-      err.response?.data?.message ||
-      "Failed to delete item."
-    );
-  }
-};
   const loadItems = async () => {
     try {
       const res = await getMyItems();
       setItems(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setPageLoading(false);
     }
   };
+
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this item?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeleteLoading(id);
+
+      await deleteItem(id);
+
+      setItems((prev) =>
+        prev.filter((item) => item.id !== id)
+      );
+
+      alert("Item deleted successfully.");
+    } catch (err) {
+      console.error(err);
+
+      alert(
+        err.response?.data?.message ||
+          "Failed to delete item."
+      );
+    } finally {
+      setDeleteLoading(null);
+    }
+  };
+
+  if (pageLoading) {
+    return (
+      <Loader text="Loading your items..." />
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -61,9 +84,7 @@ export default function MyItems() {
         </Link>
       </div>
     );
-  }
-
-  return (
+  }  return (
     <div>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">
@@ -126,17 +147,26 @@ export default function MyItems() {
                 </Link>
 
                 <button
-                  onClick={() => navigate(`/edit-item/${item.id}`)}
-  className="flex-1 rounded bg-yellow-500 py-2 text-white hover:bg-yellow-600"
+                  onClick={() =>
+                    navigate(`/edit-item/${item.id}`)
+                  }
+                  className="flex-1 rounded bg-yellow-500 py-2 text-white hover:bg-yellow-600"
                 >
                   Edit
                 </button>
 
                 <button
-                  onClick={() => handleDelete(item.id)}
-                  className="flex-1 rounded bg-red-500 py-2 text-white hover:bg-red-600"
+                  onClick={() =>
+                    handleDelete(item.id)
+                  }
+                  disabled={
+                    deleteLoading === item.id
+                  }
+                  className="flex-1 rounded bg-red-500 py-2 text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-400"
                 >
-                  Delete
+                  {deleteLoading === item.id
+                    ? "Deleting..."
+                    : "Delete"}
                 </button>
               </div>
             </div>

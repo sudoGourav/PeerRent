@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Loader from "../components/Loader";
 
 import {
   getOwnerDashboard,
@@ -7,9 +8,10 @@ import {
 } from "../services/dashboard.service";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] =useState(null);
   const [revenue, setRevenue] = useState(null);
   const [recentBookings, setRecentBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadDashboard();
@@ -26,15 +28,13 @@ export default function Dashboard() {
       setRecentBookings(bookingsRes.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!stats || !revenue) {
-    return (
-      <div className="py-20 text-center text-xl">
-        Loading Dashboard...
-      </div>
-    );
+  if (loading) {
+    return <Loader text="Loading dashboard..." />;
   }
 
   return (

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { login as loginUser } from "../services/auth.service";
+
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -12,6 +13,8 @@ export default function Login() {
     email: "",
     password: "",
   });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -24,6 +27,8 @@ export default function Login() {
     e.preventDefault();
 
     try {
+      setLoading(true);
+
       const res = await loginUser(form);
 
       login(res.data.token);
@@ -32,7 +37,12 @@ export default function Login() {
 
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.message || "Login Failed");
+      alert(
+        err.response?.data?.message ||
+          "Login Failed"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,6 +56,7 @@ export default function Login() {
           placeholder="Email"
           value={form.email}
           onChange={handleChange}
+          disabled={loading}
         />
 
         <br />
@@ -57,12 +68,49 @@ export default function Login() {
           placeholder="Password"
           value={form.password}
           onChange={handleChange}
+          disabled={loading}
         />
 
         <br />
-        <br />
 
-        <button type="submit">Login</button>
+        <div
+          style={{
+            marginTop: "10px",
+            marginBottom: "20px",
+          }}
+        >
+          <Link
+            to="/forgot-password"
+            style={{
+              color: "#2563eb",
+              textDecoration: "none",
+              fontSize: "14px",
+            }}
+          >
+            Forgot Password?
+          </Link>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            minWidth: "120px",
+            padding: "10px 20px",
+            cursor: loading
+              ? "not-allowed"
+              : "pointer",
+            opacity: loading ? 0.7 : 1,
+          }}
+        >
+          {loading ? (
+            <>
+              ⏳ Logging in...
+            </>
+          ) : (
+            "Login"
+          )}
+        </button>
       </form>
     </div>
   );

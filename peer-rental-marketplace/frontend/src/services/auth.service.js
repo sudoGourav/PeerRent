@@ -14,3 +14,18 @@ export const getProfile = async () => {
   const response = await api.get("/auth/profile");
   return response.data;
 };
+
+export const forgotPassword = async (email) => {
+  return api.post("/auth/forgot-password", {
+    email,
+  });
+};
+
+export const resetPassword = async (
+  token,
+  password
+) => {
+  return api.post(`/auth/reset-password/${token}`, {
+    password,
+  });
+};
