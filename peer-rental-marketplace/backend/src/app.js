@@ -16,16 +16,24 @@ const errorMiddleware = require("./middleware/error.middleware");
 
 const app = express();
 
-app.use(cors());
+// CORS Configuration
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
-    message: "PeerRent API Running 🚀",
+    message: "🚀 PeerRent API is running successfully!",
   });
 });
 
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -37,7 +45,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/test", testRoutes);
 
-// Always last
+// Global Error Handler (Always Last)
 app.use(errorMiddleware);
 
 module.exports = app;
