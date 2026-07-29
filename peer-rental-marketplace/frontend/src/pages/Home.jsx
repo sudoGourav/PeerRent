@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getItems } from "../services/item.service";
@@ -10,41 +10,67 @@ import EmptyState from "../components/EmptyState";
 
 export default function Home() {
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        const [itemsRes, categoriesRes] = await Promise.all([
+          getItems(),
+          getCategories(),
+        ]);
+
+        if (!isMounted) return;
+
+        setItems(
+          Array.isArray(itemsRes?.data?.items)
+            ? itemsRes.data.items
+            : []
+        );
+
+        setCategories(
+          Array.isArray(categoriesRes?.data)
+            ? categoriesRes.data
+            : []
+        );
+      } catch (err) {
+        console.error("Failed to load homepage data:", err);
+
+        if (isMounted) {
+          toast.error(
+            err.response?.data?.message ||
+              "Failed to load items."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const loadData = async () => {
-    try {
-      const [itemsRes, categoriesRes] = await Promise.all([
-        getItems(),
-        getCategories(),
-      ]);
+  const filteredItems = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
 
-      setItems(itemsRes.data.items || []);
+    if (!keyword) return items;
 
-      // Keep for future category filter implementation
-      console.log("Categories:", categoriesRes);
-    } catch (err) {
-      console.error(err);
-
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to load items."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredItems = items.filter((item) =>
-    item.title
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+    return items.filter((item) =>
+      (item.title || "")
+        .toLowerCase()
+        .includes(keyword)
+    );
+  }, [items, search]);
 
   if (loading) {
     return <CardSkeletonGrid />;
@@ -68,7 +94,7 @@ export default function Home() {
           placeholder="Search items..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mt-8 w-full rounded-lg border-none p-4 text-black md:w-96"
+          className="mt-8 w-full rounded-lg border-none p-4 text-black outline-none ring-0 focus:ring-2 focus:ring-white md:w-96"
         />
       </section>
 
@@ -79,7 +105,9 @@ export default function Home() {
           title="No Items Found"
           description="Try changing your search keyword or browse all available rental items."
           buttonText={
-            search ? "Clear Search" : undefined
+            search.trim()
+              ? "Clear Search"
+              : undefined
           }
           onButtonClick={() => setSearch("")}
         />

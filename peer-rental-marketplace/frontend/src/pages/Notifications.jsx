@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 import { useNotifications } from "../context/NotificationContext";
 
@@ -14,24 +15,96 @@ export default function Notifications() {
   } = useNotifications();
 
   const [loading, setLoading] = useState(true);
+  const [markAllLoading, setMarkAllLoading] = useState(false);
+  const [markingId, setMarkingId] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchNotifications = async () => {
       try {
         await loadNotifications();
+      } catch (err) {
+        console.error(
+          "Failed to load notifications:",
+          err
+        );
+
+        if (isMounted) {
+          toast.error(
+            err.response?.data?.message ||
+              "Failed to load notifications."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchNotifications();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loadNotifications]);
+
+  const handleMarkAsRead = async (id, isRead) => {
+    if (isRead || markingId) return;
+
+    try {
+      setMarkingId(id);
+      await markNotificationAsRead(id);
+    } catch (err) {
+      console.error(
+        "Failed to mark notification as read:",
+        err
+      );
+
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to update notification."
+      );
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  const handleMarkAll = async () => {
+    if (markAllLoading) return;
+
+    try {
+      setMarkAllLoading(true);
+
+      await markEveryNotificationAsRead();
+
+      toast.success(
+        "All notifications marked as read."
+      );
+    } catch (err) {
+      console.error(
+        "Failed to mark all notifications:",
+        err
+      );
+
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to mark all notifications."
+      );
+    } finally {
+      setMarkAllLoading(false);
+    }
+  };
 
   if (loading) {
     return <ListSkeleton />;
   }
 
-  if (notifications.length === 0) {
+  if (
+    !Array.isArray(notifications) ||
+    notifications.length === 0
+  ) {
     return (
       <EmptyState
         icon="🔔"
@@ -49,10 +122,13 @@ export default function Notifications() {
         </h1>
 
         <button
-          onClick={markEveryNotificationAsRead}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+          onClick={handleMarkAll}
+          disabled={markAllLoading}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
-          Mark All as Read
+          {markAllLoading
+            ? "Marking..."
+            : "Mark All as Read"}
         </button>
       </div>
 
@@ -60,10 +136,22 @@ export default function Notifications() {
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            onClick={() => {
-              if (!notification.isRead) {
-                markNotificationAsRead(
-                  notification.id
+            role="button"
+            tabIndex={0}
+            onClick={() =>
+              handleMarkAsRead(
+                notification.id,
+                notification.isRead
+              )
+            }
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" ||
+                e.key === " "
+              ) {
+                handleMarkAsRead(
+                  notification.id,
+                  notification.isRead
                 );
               }
             }}
@@ -75,7 +163,8 @@ export default function Notifications() {
           >
             <div className="flex items-start justify-between">
               <h2 className="font-semibold">
-                {notification.title}
+                {notification.title ||
+                  "Notification"}
               </h2>
 
               {!notification.isRead && (
@@ -84,13 +173,16 @@ export default function Notifications() {
             </div>
 
             <p className="mt-2 text-gray-600">
-              {notification.message}
+              {notification.message ||
+                "No message available."}
             </p>
 
             <p className="mt-3 text-sm text-gray-400">
-              {new Date(
-                notification.createdAt
-              ).toLocaleString()}
+              {notification.createdAt
+                ? new Date(
+                    notification.createdAt
+                  ).toLocaleString()
+                : "-"}
             </p>
           </div>
         ))}

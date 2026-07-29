@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { login as loginUser } from "../services/auth.service";
-
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -18,30 +17,52 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (loading) return;
+
+    const email = form.email.trim();
+    const password = form.password;
+
+    if (!email || !password) {
+      toast.error("Email and password are required.");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const res = await loginUser(form);
+      const res = await loginUser({
+        email,
+        password,
+      });
+
+      if (!res?.data?.token) {
+        throw new Error("Token not received.");
+      }
 
       login(res.data.token);
 
       toast.success("Login successful!");
 
-      navigate("/dashboard");
+      navigate("/dashboard", {
+        replace: true,
+      });
     } catch (err) {
+      console.error("Login failed:", err);
+
       toast.error(
-  err.response?.data?.message ||
-  "Login failed."
-);
+        err.response?.data?.message ||
+          err.message ||
+          "Login failed."
+      );
     } finally {
       setLoading(false);
     }
@@ -53,11 +74,14 @@ export default function Login() {
 
       <form onSubmit={handleSubmit}>
         <input
+          type="email"
           name="email"
           placeholder="Email"
+          autoComplete="email"
           value={form.email}
           onChange={handleChange}
           disabled={loading}
+          required
         />
 
         <br />
@@ -67,9 +91,11 @@ export default function Login() {
           type="password"
           name="password"
           placeholder="Password"
+          autoComplete="current-password"
           value={form.password}
           onChange={handleChange}
           disabled={loading}
+          required
         />
 
         <br />
@@ -104,13 +130,7 @@ export default function Login() {
             opacity: loading ? 0.7 : 1,
           }}
         >
-          {loading ? (
-            <>
-              ⏳ Logging in...
-            </>
-          ) : (
-            "Login"
-          )}
+          {loading ? "⏳ Logging in..." : "Login"}
         </button>
       </form>
     </div>

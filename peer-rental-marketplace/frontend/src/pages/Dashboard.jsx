@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+
 import Loader from "../components/Loader";
 
 import {
@@ -8,34 +10,91 @@ import {
 } from "../services/dashboard.service";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
-  const [revenue, setRevenue] = useState(null);
+  const [stats, setStats] = useState({});
+  const [revenue, setRevenue] = useState({});
   const [recentBookings, setRecentBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
+    const loadDashboard = async () => {
+      try {
+        const [
+          statsRes,
+          revenueRes,
+          bookingsRes,
+        ] = await Promise.all([
+          getOwnerDashboard(),
+          getRevenueSummary(),
+          getRecentBookings(),
+        ]);
+
+        if (!mounted) return;
+
+        setStats(statsRes?.data || {});
+        setRevenue(revenueRes?.data || {});
+        setRecentBookings(
+          Array.isArray(bookingsRes?.data)
+            ? bookingsRes.data
+            : []
+        );
+      } catch (err) {
+        console.error(
+          "Dashboard loading failed:",
+          err
+        );
+
+        if (mounted) {
+          toast.error(
+            err.response?.data?.message ||
+              "Failed to load dashboard."
+          );
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     loadDashboard();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const loadDashboard = async () => {
-    try {
-      const statsRes = await getOwnerDashboard();
-      const revenueRes = await getRevenueSummary();
-      const bookingsRes = await getRecentBookings();
+  if (loading) {
+    return (
+      <Loader text="Loading dashboard..." />
+    );
+  }
 
-      setStats(statsRes.data);
-      setRevenue(revenueRes.data);
-      setRecentBookings(bookingsRes.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const formatCurrency = (value) =>
+    `₹${Number(value ?? 0).toLocaleString(
+      "en-IN"
+    )}`;
+
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-700";
+
+      case "CONFIRMED":
+      case "ACTIVE":
+        return "bg-blue-100 text-blue-700";
+
+      case "COMPLETED":
+        return "bg-green-100 text-green-700";
+
+      case "CANCELLED":
+        return "bg-red-100 text-red-700";
+
+      default:
+        return "bg-gray-100 text-gray-700";
     }
   };
-
-  if (loading) {
-    return <Loader text="Loading dashboard..." />;
-  }
 
   return (
     <div className="space-y-8 px-2 sm:space-y-10">
@@ -54,28 +113,30 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardCard
           title="Total Items"
-          value={stats.totalItems}
+          value={stats?.totalItems ?? 0}
           icon="📦"
           color="bg-blue-500"
         />
 
         <DashboardCard
           title="Bookings"
-          value={stats.totalBookings}
+          value={stats?.totalBookings ?? 0}
           icon="📅"
           color="bg-green-500"
         />
 
         <DashboardCard
           title="Pending"
-          value={stats.pendingBookings}
+          value={stats?.pendingBookings ?? 0}
           icon="⏳"
           color="bg-yellow-500"
         />
 
         <DashboardCard
           title="Revenue"
-          value={`₹${revenue.totalRevenue}`}
+          value={formatCurrency(
+            revenue?.totalRevenue
+          )}
           icon="💰"
           color="bg-purple-500"
         />
@@ -90,17 +151,23 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <RevenueCard
             title="Total Revenue"
-            value={`₹${revenue.totalRevenue}`}
+            value={formatCurrency(
+              revenue?.totalRevenue
+            )}
           />
 
           <RevenueCard
             title="Completed Revenue"
-            value={`₹${revenue.completedRevenue}`}
+            value={formatCurrency(
+              revenue?.completedRevenue
+            )}
           />
 
           <RevenueCard
             title="Paid Bookings"
-            value={revenue.totalPaidBookings}
+            value={
+              revenue?.totalPaidBookings ?? 0
+            }
           />
         </div>
       </div>
@@ -124,35 +191,37 @@ export default function Dashboard() {
               >
                 <div className="min-w-0">
                   <h3 className="break-words font-semibold">
-                    {booking.item.title}
+                    {booking.item?.title ??
+                      "Deleted Item"}
                   </h3>
 
                   <p className="text-sm text-gray-500">
-                    {booking.renter.name}
+                    {booking.renter?.name ??
+                      "Unknown User"}
                   </p>
 
                   <p className="text-sm font-medium text-blue-600">
-                    ₹{booking.totalPrice}
+                    {formatCurrency(
+                      booking.totalPrice
+                    )}
                   </p>
                 </div>
 
                 <div className="flex flex-col items-start gap-2 sm:items-end">
                   <span
-                    className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                      booking.status === "PENDING"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : booking.status === "COMPLETED"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
+                    className={`rounded-full px-3 py-1 text-sm font-semibold ${getStatusStyle(
+                      booking.status
+                    )}`}
                   >
                     {booking.status}
                   </span>
 
                   <p className="text-sm text-gray-500">
-                    {new Date(
-                      booking.startDate
-                    ).toLocaleDateString()}
+                    {booking.startDate
+                      ? new Date(
+                          booking.startDate
+                        ).toLocaleDateString()
+                      : "-"}
                   </p>
                 </div>
               </div>

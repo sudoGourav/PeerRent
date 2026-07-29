@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Loader from "../components/Loader";
-import ImageWithFallback from "../components/ImageWithFallback";
 import toast from "react-hot-toast";
 
 import {
@@ -83,7 +82,7 @@ export default function ItemDetails() {
       const res = await getItemById(id);
       setItem(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load item:", err);
     }
   };
 
@@ -132,32 +131,46 @@ export default function ItemDetails() {
     };
 
   const handleBooking = async () => {
+    if (bookingLoading) return;
     if (!startDate || !endDate) {
       toast.error("Please select both dates.");
       return;
     }
-
+    if (!item.available) {
+  toast.error("This item is currently unavailable.");
+  return;
+}
     try {
+      if (
+    differenceInCalendarDays(
+        endDate,
+        startDate
+    ) <= 0
+) {
+    toast.error(
+        "End date must be after start date."
+    );
+    return;
+}
       setBookingLoading(true);
 
       await createBooking({
-        itemId: item.id,
-        startDate:
-          startDate
-            .toISOString()
-            .split("T")[0],
-        endDate:
-          endDate
-            .toISOString()
-            .split("T")[0],
-      });
+  itemId: item.id,
+  startDate: startDate.toISOString().split("T")[0],
+  endDate: endDate.toISOString().split("T")[0],
+});
 
-      toast.success("Booking created successfully!");
+await loadUnavailableDates();
+
+setStartDate("");
+setEndDate("");
+
+toast.success("Booking Created Successfully");
     } catch (err) {
       toast.error(
-        err.response?.data?.message ||
-          "Booking failed."
-      );
+    err.response?.data?.message ||
+    "Booking failed."
+);
     } finally {
       setBookingLoading(false);
     }
@@ -165,6 +178,7 @@ export default function ItemDetails() {
 
   const handleReviewSubmit =
     async () => {
+      if (reviewLoading) return;
       if (!comment.trim()) {
         toast.error("Please enter a review.");
         return;
@@ -174,10 +188,10 @@ export default function ItemDetails() {
         setReviewLoading(true);
 
         await createReview({
-          itemId: item.id,
-          rating,
-          comment,
-        });
+  itemId: item.id,
+  rating,
+  comment: comment.trim(),
+});
 
         toast.success("Review added successfully!");
 
@@ -187,9 +201,9 @@ export default function ItemDetails() {
         loadReviews();
       } catch (err) {
         toast.error(
-          err.response?.data?.message ||
-            "Failed to add review."
-        );
+    err.response?.data?.message ||
+    "Failed to add review."
+);
       } finally {
         setReviewLoading(false);
       }
@@ -222,14 +236,19 @@ export default function ItemDetails() {
       <div className="grid gap-10 lg:grid-cols-2">
         {/* Image Section */}
         <div className="h-96 overflow-hidden rounded-2xl bg-gray-100 shadow">
-          <ImageWithFallback
-            src={item.imageUrl}
-            alt={item.title}
-            className="h-full w-full object-cover"
-            fallbackIcon={
-              item.category?.icon || "📦"
-            }
-          />
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt={item.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <span className="text-8xl">
+                {item.category?.icon || "📦"}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Item Details */}
@@ -398,7 +417,9 @@ export default function ItemDetails() {
             </div>
           </div>
         </div>
-      </div>      {/* Reviews */}
+      </div>
+
+      {/* Reviews */}
       <div className="mt-10 rounded-2xl border bg-white p-6 shadow">
         <h2 className="text-2xl font-semibold">
           Reviews
@@ -455,7 +476,7 @@ export default function ItemDetails() {
             <button
               onClick={handleReviewSubmit}
               disabled={reviewLoading}
-              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400"
+              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:bg-gray-400"
             >
               {reviewLoading
                 ? "Submitting..."

@@ -23,38 +23,80 @@ export default function CreateItem() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
+
+    const loadCategories = async () => {
+      try {
+        const res = await getCategories();
+
+        if (!mounted) return;
+
+        setCategories(
+          Array.isArray(res?.data) ? res.data : []
+        );
+      } catch (err) {
+        console.error(
+          "Failed to load categories:",
+          err
+        );
+
+        if (mounted) {
+          toast.error(
+            err.response?.data?.message ||
+              "Failed to load categories."
+          );
+        }
+      }
+    };
+
     loadCategories();
+
+    return () => {
+      mounted = false;
+
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
   }, []);
 
-  const loadCategories = async () => {
-    try {
-      const res = await getCategories();
-      setCategories(res.data);
-    } catch (err) {
-      console.error(err);
-
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to load categories."
-      );
-    }
-  };
-
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
 
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5 MB.");
+      return;
+    }
+
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+
+    const imageUrl = URL.createObjectURL(file);
+
     setImage(file);
-    setPreview(URL.createObjectURL(file));
+    setPreview(imageUrl);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (loading) return;
+
+    const trimmedTitle = title.trim();
+    const trimmedDescription =
+      description.trim();
+
     if (
-      !title ||
-      !description ||
+      !trimmedTitle ||
+      !trimmedDescription ||
       !dailyRate ||
       !deposit ||
       !categoryId
@@ -63,13 +105,26 @@ export default function CreateItem() {
       return;
     }
 
+    if (
+      Number(dailyRate) <= 0 ||
+      Number(deposit) < 0
+    ) {
+      toast.error(
+        "Please enter valid prices."
+      );
+      return;
+    }
+
     try {
       setLoading(true);
 
       const formData = new FormData();
 
-      formData.append("title", title);
-      formData.append("description", description);
+      formData.append("title", trimmedTitle);
+      formData.append(
+        "description",
+        trimmedDescription
+      );
       formData.append("dailyRate", dailyRate);
       formData.append("deposit", deposit);
       formData.append("categoryId", categoryId);
@@ -80,11 +135,18 @@ export default function CreateItem() {
 
       await createItem(formData);
 
-      toast.success("Item created successfully!");
+      toast.success(
+        "Item created successfully!"
+      );
 
-      navigate("/");
+      navigate("/my-items", {
+        replace: true,
+      });
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Failed to create item:",
+        err
+      );
 
       toast.error(
         err.response?.data?.message ||

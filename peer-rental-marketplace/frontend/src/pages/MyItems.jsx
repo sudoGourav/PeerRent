@@ -23,26 +23,41 @@ export default function MyItems() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadItems();
+    let isMounted = true;
+
+    const fetchItems = async () => {
+      try {
+        const res = await getMyItems();
+
+        if (!isMounted) return;
+
+        setItems(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to load items:", err);
+
+        if (isMounted) {
+          toast.error(
+            err.response?.data?.message ||
+              "Failed to load your items."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setPageLoading(false);
+        }
+      }
+    };
+
+    fetchItems();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const loadItems = async () => {
-    try {
-      const res = await getMyItems();
-      setItems(res.data);
-    } catch (err) {
-      console.error(err);
-
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to load your items."
-      );
-    } finally {
-      setPageLoading(false);
-    }
-  };
-
   const openDeleteModal = (id) => {
+    if (deleteLoading) return;
+
     setSelectedItemId(id);
     setIsModalOpen(true);
   };
@@ -55,22 +70,23 @@ export default function MyItems() {
   };
 
   const handleDelete = async () => {
+    if (!selectedItemId || deleteLoading) return;
+
     try {
       setDeleteLoading(selectedItemId);
 
       await deleteItem(selectedItemId);
 
       setItems((prev) =>
-        prev.filter(
-          (item) => item.id !== selectedItemId
-        )
+        prev.filter((item) => item.id !== selectedItemId)
       );
 
       toast.success("Item deleted successfully!");
 
-      closeDeleteModal();
+      setIsModalOpen(false);
+      setSelectedItemId(null);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to delete item:", err);
 
       toast.error(
         err.response?.data?.message ||
@@ -135,8 +151,8 @@ export default function MyItems() {
             >
               <div className="h-56 overflow-hidden bg-gray-100">
                 <ImageWithFallback
-                  src={item.imageUrl}
-                  alt={item.title}
+                  src={item.imageUrl || ""}
+                  alt={item.title || "Rental Item"}
                   className="h-full w-full object-cover"
                   fallbackIcon={
                     item.category?.icon || "📦"
@@ -146,20 +162,26 @@ export default function MyItems() {
 
               <div className="p-5">
                 <h2 className="line-clamp-1 text-xl font-semibold">
-                  {item.title}
+                  {item.title || "Untitled Item"}
                 </h2>
 
                 <p className="mt-2 line-clamp-2 text-gray-600">
-                  {item.description}
+                  {item.description ||
+                    "No description provided."}
                 </p>
 
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <span className="font-bold text-blue-600">
-                    ₹{item.dailyRate}/day
+                    ₹
+                    {Number(
+                      item.dailyRate || 0
+                    ).toLocaleString("en-IN")}
+                    /day
                   </span>
 
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium sm:text-sm">
-                    {item.category?.name}
+                    {item.category?.name ||
+                      "Uncategorized"}
                   </span>
                 </div>
 
@@ -173,10 +195,15 @@ export default function MyItems() {
                   </Link>
 
                   <button
-                    onClick={() =>
-                      navigate(`/edit-item/${item.id}`)
-                    }
-                    className="flex-1 rounded-lg bg-yellow-500 py-2 font-medium text-white transition hover:bg-yellow-600"
+                    onClick={() => {
+                      if (!deleteLoading) {
+                        navigate(
+                          `/edit-item/${item.id}`
+                        );
+                      }
+                    }}
+                    disabled={deleteLoading !== null}
+                    className="flex-1 rounded-lg bg-yellow-500 py-2 font-medium text-white transition hover:bg-yellow-600 disabled:cursor-not-allowed disabled:bg-gray-400"
                   >
                     Edit
                   </button>

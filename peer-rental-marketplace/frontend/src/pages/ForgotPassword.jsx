@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { forgotPassword } from "../services/auth.service";
 import toast from "react-hot-toast";
+
+import { forgotPassword } from "../services/auth.service";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -9,13 +10,40 @@ export default function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (loading) return;
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      toast.error("Email is required.");
+      return;
+    }
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const res = await forgotPassword(email);
+      const res = await forgotPassword(trimmedEmail);
 
-      toast.success(res.data.message);
+      toast.success(
+        res?.data?.message ||
+          "Password reset link sent."
+      );
+
+      setEmail("");
     } catch (err) {
+      console.error(
+        "Forgot password failed:",
+        err
+      );
+
       toast.error(
         err.response?.data?.message ||
           "Something went wrong."
@@ -36,9 +64,12 @@ export default function ForgotPassword() {
           <input
             type="email"
             placeholder="Enter your email"
+            autoComplete="email"
             className="mb-4 w-full rounded-lg border p-3"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) =>
+              setEmail(e.target.value)
+            }
             disabled={loading}
             required
           />
