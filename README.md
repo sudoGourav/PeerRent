@@ -218,8 +218,11 @@ VITE_API_URL
 # 📸 Screenshots
 
 <img width="2880" height="1800" alt="image" src="https://github.com/user-attachments/assets/dd43ecdb-3f01-4890-8cfa-7985a72e4162" />
-<img width="2880" height="1800" alt="image" src="https://github.com/user-attachments/assets/81a5fc98-bd12-4181-aa5f-37dac000181f" />
-<img width="2880" height="1800" alt="image" src="https://github.com/user-attachments/assets/24a49b39-227a-4b5a-b5c2-c025293b2902" />
+<img width="2880" height="1800" alt="image" src="https://github.com/user-attachments/assets/a01d0ba4-8498-458e-bfc7-a9b485a8dca3" />
+<img width="2880" height="1800" alt="image" src="https://github.com/user-attachments/assets/8092ef98-bb07-4680-9e4e-6ffc69a5027f" />
+
+
+
 
 
 
